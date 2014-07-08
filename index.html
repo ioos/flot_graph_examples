@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SECOORA</title>
+    <title>SECOORA Climatology</title>
     <link rel="stylesheet" type="text/css" href="./lib/bootstrap-3.1.1-dist/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="./lib/jquery-ui.css">
     <link rel="stylesheet" type="text/css" href="style.css"/>
@@ -26,19 +26,22 @@
   </head>
   <body onload="init()">
     <div class="container-fluid">
+<!--
       <div class="row">
         <div class="col-md-12"><h1 class="text-center">SECOORA Climatology</h1></div>
       </div>
+-->
       <div class="row">
         <div id="map-panel" class="col-md-6">
           <div id="date-slider"></div>
           <div id="map"></div>
         </div>
         <div class="col-md-6">
+          <div id="status">&nbsp;</div>
           <div id="toolbar" class="ui-widget-header ui-corner-all">
             <span id="variable">
+              <input type="radio" name="variable" id="salinity"><label for="salinity">Salnity</label>
               <input type="radio" name="variable" id="temperature" checked="checked"><label for="temperature">Temperature</label>
-              <input type="radio" name="variable" id="wind"><label for="wind">Wind Speed</label>
             </span>
             <button id="clearAll" style="float:right">Clear All</button>
             <button id="refresh" style="float:right">Refresh</button>

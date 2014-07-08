@@ -1,6 +1,7 @@
 var map;
 var lyrQuery;
 var fidQuery = 1;
+var activeQuery = {};
 var proj3857 = new OpenLayers.Projection("EPSG:3857");
 var proj4326 = new OpenLayers.Projection("EPSG:4326");
 var graph;
@@ -10,12 +11,25 @@ var palette = new Rickshaw.Color.Palette();
 
 function init() {
   $("#variable").buttonset();
-  $("#refresh").button();
-  $("#clearAll").button().click(function() {
+  $("#refresh").button().click(function() {
+    var positions = [];
+    _.each(lyrQuery.features,function(o) {
+      var c = o.geometry.getCentroid();
+      var c4326 = c.clone().transform(proj3857,proj4326);
+      positions.push([c,c4326]);
+    });
+    palette = new Rickshaw.Color.Palette();
     lyrQuery.removeAllFeatures();
     updateGraph();
-    fidQuery = 1;
+    _.each(positions,function(o) {
+      query({x : o[0].x,y : o[0].y},{lon : o[1].x,lat : o[1].y});
+    });
+  });
+  $("#clearAll").button().click(function() {
     palette = new Rickshaw.Color.Palette();
+    lyrQuery.removeAllFeatures();
+    updateGraph();
+    // fidQuery = 1;
   });
 
   lyrQuery = new OpenLayers.Layer.Vector(
@@ -43,11 +57,22 @@ function init() {
 
   map = new OpenLayers.Map('map',{
     layers  : [
+/*
       new OpenLayers.Layer.Google('Google Satellite',{
          type              : google.maps.MapTypeId.TERRAIN
         ,sphericalMercator : true
         ,wrapDateLine      : true
       })
+*/
+      new OpenLayers.Layer.XYZ(
+         'ESRI Ocean'
+        ,'http://services.arcgisonline.com/ArcGIS/rest/services/Ocean_Basemap/MapServer/tile/${z}/${y}/${x}.jpg'
+        ,{
+           sphericalMercator : true
+          ,isBaseLayer       : true
+          ,wrapDateLine      : true
+        }
+      )
       ,new OpenLayers.Layer.Vector('SABGOM',{
          strategies : [new OpenLayers.Strategy.Fixed()]
         ,protocol   : new OpenLayers.Protocol.HTTP({
@@ -105,20 +130,31 @@ function query(center,data) {
   f.attributes.id = fid;
   f.attributes.color = palette.color();
   lyrQuery.addFeatures([f]);
+  activeQuery[fid] = true;
+  var size = _.size(activeQuery);
+  $('#status').html('Processing ' + size + ' ' + (size > 1 ? 'queries' : 'query') + ' <img src="img/progressDots.gif">');
 
   var minT = $('#date-slider').dateRangeSlider('min').format('yyyy-mm-dd"T"HH:00:00"Z"');
   var maxT = $('#date-slider').dateRangeSlider('max').format('yyyy-mm-dd"T"HH:00:00"Z"');
   var z = '-0.986111111111111';
 
   OpenLayers.Request.issue({
-     url : './getSabgom.php?z=' + z + '&lon=' + data.lon + '&lat=' + data.lat + '&minT=' + minT + '&maxT=' + maxT + '&fid=' + fid
+     url : './getSabgom.php?z=' + z + '&lon=' + data.lon + '&lat=' + data.lat + '&minT=' + minT + '&maxT=' + maxT + '&fid=' + fid + '&var=' + $("input:radio[name='variable']:checked").attr('id')
     ,callback : function(r) {
       var json = new OpenLayers.Format.JSON().read(r.responseText);
       var f = _.find(lyrQuery.features,function(o){return o.attributes.id == fid});
       f.attributes.data = json.data;
       f.attributes.min  = json.min;
       f.attributes.max  = json.max;
-      f.attributes.u    = ' (' + json.u + ')';
+      f.attributes.u    = !_.isEmpty(json.u) ? ' (' + json.u + ')' : '';
+      delete activeQuery[fid];
+      if (_.size(activeQuery) == 0) {
+        $('#status').html('&nbsp;');
+      }
+      else {
+        var size = _.size(activeQuery);
+        $('#status').html('Processing ' + size + ' ' + (size > 1 ? 'queries' : 'query') + ' <img src="img/progressDots.gif">');
+      }
       updateGraph();
     }
   });
