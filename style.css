@@ -4,9 +4,11 @@ body {
 }
 
 #map {
+  position: relative;
+  top: 5px;
   width: 100%;
   height: 480px;
-  border: 1px solid #687180
+  border: 1px solid #AAAAAA;
 }
 
 #map-panel {
@@ -21,12 +23,10 @@ body {
 
 #toolbar {
   position: relative;
-  top: 30px;
   padding: 2px;
   display: inline-block;
   width: 100%;
   font-size: 75%;
-  z-index: 100;
 }
 
 #toolbar label {
@@ -34,11 +34,11 @@ body {
 }
 
 #chart_container {
-  border: 1px solid #687180;
+  border: 1px solid #AAAAAA;
   position: relative;
   width: 100%;
-  height: 480px; 
-  top: 26px;
+  height: 553px; 
+  top: 40px;
   margin-top: 10px;
   padding-right: 50px;
 }
