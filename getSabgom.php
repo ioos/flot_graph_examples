@@ -23,6 +23,7 @@
     ,'fid'  => $_REQUEST['fid']
     ,'var'  => $_REQUEST['var']
     ,'url'  => $url
+    ,'off'  => $_REQUEST['off']
   );
   date_default_timezone_set('UTC');
 

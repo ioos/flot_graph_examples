@@ -15,18 +15,34 @@ function init() {
   $("#variable").buttonset();
   $('#variable input[type=radio]').change(function(){
     var v = $(this).attr('id');
+    var off = {};
+    if (v == 'Both') {
+      v = ['Temperature','Salinity'];
+      off = {
+        Temperature : 0
+       ,Salinity    : 0.5
+      };
+    }
+    else {
+      v = [v];
+      off[v] = 0;
+    }
     var features = [];
     _.each(lyrQuery.features,function(o) {
       var c = o.geometry.getCentroid();
       var c4326 = c.clone().transform(proj3857,proj4326);
-      features.push([c,c4326,v]);
+      _.each(v,function(p) {
+        if (o.attributes.off != 0.5) {
+          features.push([c,c4326,p]);
+        }
+      });
     });
     palette = new Rickshaw.Color.Palette();
     lyrQuery.removeAllFeatures();
     fidQuery = 1;
     updateGraph();
     _.each(features,function(o) {
-      query({x : o[0].x,y : o[0].y},{lon : o[1].x,lat : o[1].y,v : o[2]});
+      query({x : o[0].x,y : o[0].y},{lon : o[1].x,lat : o[1].y,v : o[2]},off[o[2]]);
     });
   });
   $("#refresh").button().click(function() {
@@ -34,14 +50,14 @@ function init() {
     _.each(lyrQuery.features,function(o) {
       var c = o.geometry.getCentroid();
       var c4326 = c.clone().transform(proj3857,proj4326);
-      features.push([c,c4326,o.attributes.var]);
+      features.push([c,c4326,o.attributes.var,o.attributes.off]);
     });
     palette = new Rickshaw.Color.Palette();
     lyrQuery.removeAllFeatures();
     fidQuery = 1;
     updateGraph();
     _.each(features,function(o) {
-      query({x : o[0].x,y : o[0].y},{lon : o[1].x,lat : o[1].y,v : o[2]});
+      query({x : o[0].x,y : o[0].y},{lon : o[1].x,lat : o[1].y,v : o[2]},o[3]);
     });
   });
   $("#clearAll").button().click(function() {
@@ -56,18 +72,27 @@ function init() {
     ,{styleMap : new OpenLayers.StyleMap({
       'default' : new OpenLayers.Style(
          OpenLayers.Util.applyDefaults({
-           label             : '${id}'
+           label             : '${getLabel}'
           ,labelAlign        : 'cm'
           ,fontFamily        : 'Arial, Helvetica, sans-serif'
           ,fontSize          : 11
-          ,pointRadius       : 8
+          ,pointRadius       : '${getPointRadius}' // 8
           ,strokeColor       : '${color}'
           ,strokeOpacity     : 0.8
           ,fillColor         : '#ffffff'
-          ,fillOpacity       : 0.8
+          ,fillOpacity       : '${getFillOpacity}' // 0.8
         })
         ,{
           context : {
+            getLabel : function(f) {
+              return /\.5$/.test(f.attributes.id) ? '' : f.attributes.id;
+            }
+            ,getFillOpacity : function(f) {
+              return /\.5$/.test(f.attributes.id) ? 0 : 0.8;
+            }
+            ,getPointRadius : function(f) {
+              return /\.5$/.test(f.attributes.id) ? 12 : 8;
+            }
           }
         }
       )
@@ -112,10 +137,26 @@ function init() {
     if ($(e.target).attr('class') != 'olPopupCloseBox') {
       var lonLat = map.getLonLatFromPixel(e.xy);
       var lonLat4326 = lonLat.clone().transform(proj3857,proj4326);
-      query({x : lonLat.lon,y : lonLat.lat},{
-         lon : lonLat4326.lon
-        ,lat : lonLat4326.lat
-        ,v   : $("input:radio[name='variable']:checked").attr('id')
+      var v = $("input:radio[name='variable']:checked").attr('id');
+      var off = {};
+      if (v == 'Both') {
+        v = ['Temperature','Salinity'];
+        off = {
+          Temperature : 0
+         ,Salinity    : 0.5
+        };
+      }
+      else {
+        v = [v];
+        off[v] = 0;
+      }
+      var i = 0;
+      _.each(v,function(o) {
+        query({x : lonLat.lon,y : lonLat.lat},{
+           lon : lonLat4326.lon
+          ,lat : lonLat4326.lat
+          ,v   : o
+        },off[o]);
       });
     }
   });
@@ -135,8 +176,14 @@ function init() {
   });
 }
 
-function query(center,data) {
-  var fid = fidQuery++;
+function query(center,data,fidOffset) {
+  var fid;
+  if (fidOffset > 0) {
+    fid = fidQuery - fidOffset; 
+  }
+  else {
+    fid = fidQuery++;
+  }
   var f = new OpenLayers.Feature.Vector(
     new OpenLayers.Geometry.Point(center.x,center.y)
   );
@@ -154,10 +201,11 @@ function query(center,data) {
   var z = '-0.986111111111111';
 
   OpenLayers.Request.issue({
-     url : './getSabgom.php?z=' + z + '&lon=' + data.lon + '&lat=' + data.lat + '&minT=' + minT + '&maxT=' + maxT + '&fid=' + fid + '&var=' + data.v
+     url : './getSabgom.php?z=' + z + '&lon=' + data.lon + '&lat=' + data.lat + '&minT=' + minT + '&maxT=' + maxT + '&fid=' + fid + '&var=' + data.v + '&off=' + fidOffset
     ,callback : function(r) {
       var json = new OpenLayers.Format.JSON().read(r.responseText);
       var f = _.find(lyrQuery.features,function(o){return o.attributes.id == fid});
+      f.attributes.off  = json.off;
       f.attributes.var  = json.var;
       f.attributes.data = json.data;
       f.attributes.min  = json.min;
@@ -191,8 +239,10 @@ function updateGraph() {
     ,Salinity    : [false,false]
   };
   _.each(_.sortBy(lyrQuery.features,function(o){return -1 * o.attributes.id}),function(f) {
-    ranges[f.attributes.var][0] = !ranges[f.attributes.var][0] || f.attributes.min < ranges[f.attributes.var][0] ? f.attributes.min : ranges[f.attributes.var][0];
-    ranges[f.attributes.var][1] = !ranges[f.attributes.var][1] || f.attributes.max > ranges[f.attributes.var][1] ? f.attributes.max : ranges[f.attributes.var][1];
+    if (f.attributes.var) {
+      ranges[f.attributes.var][0] = !ranges[f.attributes.var][0] || f.attributes.min < ranges[f.attributes.var][0] ? f.attributes.min : ranges[f.attributes.var][0];
+      ranges[f.attributes.var][1] = !ranges[f.attributes.var][1] || f.attributes.max > ranges[f.attributes.var][1] ? f.attributes.max : ranges[f.attributes.var][1];
+    }
   });
   var scales = {
      Temperature : ranges['Temperature'] ? d3.scale.linear().domain([ranges['Temperature'][0],ranges['Temperature'][1]]) : false
@@ -200,12 +250,14 @@ function updateGraph() {
   };
   var series = [];
   _.each(_.sortBy(lyrQuery.features,function(o){return -1 * o.attributes.id}),function(f) {
-    series.push({
-       name  : 'Query #' + f.attributes.id + ' ' + f.attributes.var + f.attributes.u
-      ,data  : f.attributes.data
-      ,color : f.attributes.color
-      ,scale : scales[f.attributes.var]
-    });
+    if (f.attributes.data) {
+      series.push({
+         name  : 'Query #' + Math.floor(f.attributes.id) + ' ' + f.attributes.var + f.attributes.u
+        ,data  : f.attributes.data
+        ,color : f.attributes.color
+        ,scale : scales[f.attributes.var]
+      });
+    }
   });
   if (series.length > 0) {
     graph = new Rickshaw.Graph({
