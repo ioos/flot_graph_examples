@@ -26,6 +26,7 @@ body {
   display: inline-block;
   width: 100%;
   font-size: 75%;
+  z-index: 100;
 }
 
 #toolbar label {
@@ -45,13 +46,22 @@ body {
 #chart {
   position: relative;
   left: 40px;
-  width: 100%;
+  width: -moz-calc(100% - 30px);
+  width: -webkit-calc(100% - 30px);
+  width: calc(100% - 30px);
   height: 100%;
 }
 
-#y_axis {
+#y0_axis {
   position: absolute;
   top: 0px;
+  width: 40px;
+}
+
+#y1_axis {
+  position: absolute;
+  top: 0px;
+  right: 0px;
   width: 40px;
 }
 

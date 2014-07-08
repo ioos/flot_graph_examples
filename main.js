@@ -6,30 +6,33 @@ var proj3857 = new OpenLayers.Projection("EPSG:3857");
 var proj4326 = new OpenLayers.Projection("EPSG:4326");
 var graph;
 var x_axis;
+var y0_axis;
+var y1_axis;
 var hoverDetail;
 var palette = new Rickshaw.Color.Palette();
 
 function init() {
   $("#variable").buttonset();
   $("#refresh").button().click(function() {
-    var positions = [];
+    var features = [];
     _.each(lyrQuery.features,function(o) {
       var c = o.geometry.getCentroid();
       var c4326 = c.clone().transform(proj3857,proj4326);
-      positions.push([c,c4326]);
+      features.push([c,c4326,o.attributes.var]);
     });
     palette = new Rickshaw.Color.Palette();
     lyrQuery.removeAllFeatures();
+    fidQuery = 1;
     updateGraph();
-    _.each(positions,function(o) {
-      query({x : o[0].x,y : o[0].y},{lon : o[1].x,lat : o[1].y});
+    _.each(features,function(o) {
+      query({x : o[0].x,y : o[0].y},{lon : o[1].x,lat : o[1].y,v : o[2]});
     });
   });
   $("#clearAll").button().click(function() {
     palette = new Rickshaw.Color.Palette();
     lyrQuery.removeAllFeatures();
+    fidQuery = 1;
     updateGraph();
-    // fidQuery = 1;
   });
 
   lyrQuery = new OpenLayers.Layer.Vector(
@@ -57,13 +60,6 @@ function init() {
 
   map = new OpenLayers.Map('map',{
     layers  : [
-/*
-      new OpenLayers.Layer.Google('Google Satellite',{
-         type              : google.maps.MapTypeId.TERRAIN
-        ,sphericalMercator : true
-        ,wrapDateLine      : true
-      })
-*/
       new OpenLayers.Layer.XYZ(
          'ESRI Ocean'
         ,'http://services.arcgisonline.com/ArcGIS/rest/services/Ocean_Basemap/MapServer/tile/${z}/${y}/${x}.jpg'
@@ -103,6 +99,7 @@ function init() {
       query({x : lonLat.lon,y : lonLat.lat},{
          lon : lonLat4326.lon
         ,lat : lonLat4326.lat
+        ,v   : $("input:radio[name='variable']:checked").attr('id')
       });
     }
   });
@@ -132,6 +129,8 @@ function query(center,data) {
   lyrQuery.addFeatures([f]);
   activeQuery[fid] = true;
   var size = _.size(activeQuery);
+  $("#refresh").prop('disabled',true);
+  $("#clearAll").prop('disabled',true);
   $('#status').html('Processing ' + size + ' ' + (size > 1 ? 'queries' : 'query') + ' <img src="img/progressDots.gif">');
 
   var minT = $('#date-slider').dateRangeSlider('min').format('yyyy-mm-dd"T"HH:00:00"Z"');
@@ -139,10 +138,11 @@ function query(center,data) {
   var z = '-0.986111111111111';
 
   OpenLayers.Request.issue({
-     url : './getSabgom.php?z=' + z + '&lon=' + data.lon + '&lat=' + data.lat + '&minT=' + minT + '&maxT=' + maxT + '&fid=' + fid + '&var=' + $("input:radio[name='variable']:checked").attr('id')
+     url : './getSabgom.php?z=' + z + '&lon=' + data.lon + '&lat=' + data.lat + '&minT=' + minT + '&maxT=' + maxT + '&fid=' + fid + '&var=' + data.v
     ,callback : function(r) {
       var json = new OpenLayers.Format.JSON().read(r.responseText);
       var f = _.find(lyrQuery.features,function(o){return o.attributes.id == fid});
+      f.attributes.var  = json.var;
       f.attributes.data = json.data;
       f.attributes.min  = json.min;
       f.attributes.max  = json.max;
@@ -150,6 +150,8 @@ function query(center,data) {
       delete activeQuery[fid];
       if (_.size(activeQuery) == 0) {
         $('#status').html('&nbsp;');
+        $("#refresh").prop('disabled',false);
+        $("#clearAll").prop('disabled',false);
       }
       else {
         var size = _.size(activeQuery);
@@ -161,33 +163,54 @@ function query(center,data) {
 }
 
 function updateGraph() {
-  $('#y_axis').empty();
+  $('#y0_axis').empty();
+  $('#y1_axis').empty();
   $('#chart').empty();
-  delete y_axis;
+  delete y0_axis;
+  delete y1_axis;
   delete graph;
   delete hoverDetail;
-  var min = false;
-  var max = false;
+  var ranges = {
+     Temperature : [false,false]
+    ,Salinity    : [false,false]
+  };
+  _.each(_.sortBy(lyrQuery.features,function(o){return -1 * o.attributes.id}),function(f) {
+    ranges[f.attributes.var][0] = !ranges[f.attributes.var][0] || f.attributes.min < ranges[f.attributes.var][0] ? f.attributes.min : ranges[f.attributes.var][0];
+    ranges[f.attributes.var][1] = !ranges[f.attributes.var][1] || f.attributes.max > ranges[f.attributes.var][1] ? f.attributes.max : ranges[f.attributes.var][1];
+  });
+  var scales = {
+     Temperature : ranges['Temperature'] ? d3.scale.linear().domain([ranges['Temperature'][0],ranges['Temperature'][1]]) : false
+    ,Salinity    : ranges['Salinity'] ? d3.scale.linear().domain([ranges['Salinity'][0],ranges['Salinity'][1]]) : false
+  };
   var series = [];
   _.each(_.sortBy(lyrQuery.features,function(o){return -1 * o.attributes.id}),function(f) {
-    min = !min || f.attributes.min < min ? f.attributes.min : min;
-    max = !max || f.attributes.max > max ? f.attributes.max : max;
-    series.push({name : 'Query #' + f.attributes.id + f.attributes.u,data : f.attributes.data,color : f.attributes.color});
+    series.push({
+       name  : 'Query #' + f.attributes.id + ' ' + f.attributes.var + f.attributes.u
+      ,data  : f.attributes.data
+      ,color : f.attributes.color
+      ,scale : scales[f.attributes.var]
+    });
   });
   if (series.length > 0) {
     graph = new Rickshaw.Graph({
        element  : document.getElementById("chart")
-      ,min      : min
-      ,max      : max
       ,renderer : 'line'
       ,series   : series
     });
     var x_axes = new Rickshaw.Graph.Axis.Time({graph : graph});
-    y_axis = new Rickshaw.Graph.Axis.Y({
+    y0_axis = new Rickshaw.Graph.Axis.Y.Scaled({
        graph       : graph
       ,orientation : 'left'
       ,tickFormat  : Rickshaw.Fixtures.Number.formatKMBT
-      ,element     : document.getElementById('y_axis')
+      ,element     : document.getElementById('y0_axis')
+      ,scale       : scales['Temperature']
+    });
+    y1_axis = new Rickshaw.Graph.Axis.Y.Scaled({
+       graph       : graph
+      ,orientation : 'right'
+      ,tickFormat  : Rickshaw.Fixtures.Number.formatKMBT
+      ,element     : document.getElementById('y1_axis')
+      ,scale       : scales['Salinity']
     });
     graph.render();
     hoverDetail = new Rickshaw.Graph.HoverDetail({

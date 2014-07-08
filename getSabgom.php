@@ -1,7 +1,7 @@
 <?php
   $var = array(
-     'temperature' => 'temp'
-    ,'salinity'    => 'salt'
+     'Temperature' => 'temp'
+    ,'Salinity'    => 'salt'
   );
   $url = sprintf(
      "http://omgarch1.meas.ncsu.edu:8080/thredds/ncss/grid/fmrc/sabgom/SABGOM_Forecast_Model_Run_Collection_best.ncd?var=%s&latitude=%f&longitude=%f&time_start=%s&time_end=%s&accept=xml&vertCoord=%f"
@@ -21,6 +21,8 @@
     ,'min'  => NULL
     ,'max'  => NULL
     ,'fid'  => $_REQUEST['fid']
+    ,'var'  => $_REQUEST['var']
+    ,'url'  => $url
   );
   date_default_timezone_set('UTC');
 
