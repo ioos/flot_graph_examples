@@ -13,6 +13,22 @@ var palette = new Rickshaw.Color.Palette();
 
 function init() {
   $("#variable").buttonset();
+  $('#variable input[type=radio]').change(function(){
+    var v = $(this).attr('id');
+    var features = [];
+    _.each(lyrQuery.features,function(o) {
+      var c = o.geometry.getCentroid();
+      var c4326 = c.clone().transform(proj3857,proj4326);
+      features.push([c,c4326,v]);
+    });
+    palette = new Rickshaw.Color.Palette();
+    lyrQuery.removeAllFeatures();
+    fidQuery = 1;
+    updateGraph();
+    _.each(features,function(o) {
+      query({x : o[0].x,y : o[0].y},{lon : o[1].x,lat : o[1].y,v : o[2]});
+    });
+  });
   $("#refresh").button().click(function() {
     var features = [];
     _.each(lyrQuery.features,function(o) {
