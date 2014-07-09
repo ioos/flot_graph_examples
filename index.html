@@ -25,32 +25,32 @@
   </head>
   <body onload="init()">
     <div class="container-fluid">
-<!--
       <div class="row">
         <div class="col-md-12"><h1 class="text-center">SECOORA Climatology</h1></div>
       </div>
--->
       <div class="row">
-        <div id="map-panel" class="col-md-6">
-          <div id="date-slider"></div>
+        <div id="lh" class="col-md-6">
           <div id="toolbar" class="ui-widget-header ui-corner-all">
             <span id="variable">
-              <input type="radio" name="variable" id="Temperature" checked="checked"><label for="Temperature">Temperature</label>
+              <input type="radio" name="variable" id="Temperature"><label for="Temperature">Temperature</label>
               <input type="radio" name="variable" id="Salinity"><label for="Salinity">Salinity</label>
-              <input type="radio" name="variable" id="Both"><label for="Both">Both</label>
+              <input type="radio" name="variable" id="Both" checked="checked"><label for="Both">Both</label>
             </span>
             <button id="clearAll" style="float:right">Clear All</button>
             <button id="refresh" style="float:right">Refresh</button>
           </div>
           <div id="map"></div>
+          <div id="date-slider"></div>
         </div>
-        <div class="col-md-6">
-          <div id="status">&nbsp;</div>
+        <div id="rh" class="col-md-6">
           <div id="chart_container">
             <div id="y0_axis"></div>
             <div id="chart"></div>
             <div id="y1_axis"></div>
           </div>
+          <div id="status">&nbsp;</div>
+          <div id="y0_label">Temperature</div>
+          <div id="y1_label">Salinity</div>
         </div>
       </div>
     </div>

@@ -61,6 +61,10 @@ function init() {
     });
   });
   $("#clearAll").button().click(function() {
+    $('#rh').hide();
+    $('#lh').animate({left : $('#lh').parent().width() / 2 - $('#lh').width() / 2},function() {
+      map.updateSize();
+    });
     palette = new Rickshaw.Color.Palette();
     lyrQuery.removeAllFeatures();
     fidQuery = 1;
@@ -174,9 +178,31 @@ function init() {
 
   $('#date-slider').bind('valuesChanged',function(e,data){
   });
+
+  setTimeout(function() {
+    var pt4326 = new OpenLayers.LonLat(-78,33);
+    var pt = pt4326.clone().transform(proj4326,proj3857);
+    query({x : pt.lon,y : pt.lat},{
+       lon : pt4326.lon
+      ,lat : pt4326.lat
+      ,v   : 'Temperature'
+    },0);
+    query({x : pt.lon,y : pt.lat},{
+       lon : pt4326.lon
+      ,lat : pt4326.lat
+      ,v   : 'Salinity'
+    },0.5);
+  },2000);
+
 }
 
 function query(center,data,fidOffset) {
+  if (!$('#rh').is(':visible')) {
+    $('#lh').animate({left : 0},function() {
+      map.updateSize();
+      $('#rh').show();
+    });
+  }
   var fid;
   if (fidOffset > 0) {
     fid = fidQuery - fidOffset; 
