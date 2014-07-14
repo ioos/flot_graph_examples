@@ -1,5 +1,6 @@
 var map;
 var lyrQuery;
+var selectFeature;
 var fidQuery = 1;
 var activeQuery = {};
 var proj3857 = new OpenLayers.Projection("EPSG:3857");
@@ -100,6 +101,32 @@ function init() {
           }
         }
       )
+      ,'select' : new OpenLayers.Style(
+         OpenLayers.Util.applyDefaults({
+           label             : '${getLabel}'
+          ,labelAlign        : 'cm'
+          ,fontFamily        : 'Arial, Helvetica, sans-serif'
+          ,fontSize          : 11
+          ,pointRadius       : '${getPointRadius}' // 8
+          ,strokeColor       : '${color}'
+          ,strokeOpacity     : 0.8
+          ,fillColor         : '#ffffff'
+          ,fillOpacity       : '${getFillOpacity}' // 0.8
+        })
+        ,{
+          context : {
+            getLabel : function(f) {
+              return /\.5$/.test(f.attributes.id) ? '' : f.attributes.id;
+            }
+            ,getFillOpacity : function(f) {
+              return /\.5$/.test(f.attributes.id) ? 0 : 0.8;
+            }
+            ,getPointRadius : function(f) {
+              return /\.5$/.test(f.attributes.id) ? 12 : 8;
+            }
+          }
+        }
+      )
     })}
   );
 
@@ -136,6 +163,23 @@ function init() {
     ,center : new OpenLayers.LonLat(-83,28).transform(proj4326,proj3857)
     ,zoom   : 5
   });
+
+  selectFeature = new OpenLayers.Control.SelectFeature(lyrQuery,{
+     autoActivate : true
+    ,eventListeners : {
+      featurehighlighted : function(e) {
+        var features = _.filter(lyrQuery.features,function(o){
+          return o.geometry.equals(e.feature.geometry);
+        });
+        popup({
+           ctr  : new OpenLayers.LonLat(e.feature.geometry.x,e.feature.geometry.y) 
+          ,fids : _.pluck(features,'id')
+          ,id   : Math.floor(e.feature.attributes.id)
+        });
+      }
+    }
+  });
+  map.addControl(selectFeature);
 
   map.events.register('click',this,function(e) {
     if ($(e.target).attr('class') != 'olPopupCloseBox') {
@@ -231,12 +275,14 @@ function query(center,data,fidOffset) {
     ,callback : function(r) {
       var json = new OpenLayers.Format.JSON().read(r.responseText);
       var f = _.find(lyrQuery.features,function(o){return o.attributes.id == fid});
-      f.attributes.off  = json.off;
-      f.attributes.var  = json.var;
-      f.attributes.data = json.data;
-      f.attributes.min  = json.min;
-      f.attributes.max  = json.max;
-      f.attributes.u    = !_.isEmpty(json.u) ? ' (' + json.u + ')' : '';
+      if (f) {
+        f.attributes.off  = json.off;
+        f.attributes.var  = json.var;
+        f.attributes.data = json.data;
+        f.attributes.min  = json.min;
+        f.attributes.max  = json.max;
+        f.attributes.u    = !_.isEmpty(json.u) ? ' (' + json.u + ')' : '';
+      }
       delete activeQuery[fid];
       if (_.size(activeQuery) == 0) {
         $('#status').html('&nbsp;');
@@ -314,4 +360,39 @@ function updateGraph() {
       }
     });
   }
+}
+
+function popup(d) {
+  if (map.popup) {
+    map.removePopup(map.popup);
+    map.popup.destroy();
+    map.popup = null;
+  }
+  map.popup = new OpenLayers.Popup.FramedCloud(
+     'popup'
+    ,d.ctr
+    ,null
+    ,'<a href="#" id="removeFeatures" data-fids="' + d.fids.join(',') + '">Remove query #' + d.id + '</a>'
+    ,null
+    ,true
+    ,function() {
+      map.removePopup(map.popup);
+      map.popup.destroy();
+      map.popup = false;
+    }
+  );
+  map.addPopup(map.popup,true);
+  $('#removeFeatures').click(function() {
+    var features = [];
+    _.each($(this).data('fids').split(','),function(o) {
+      features.push(lyrQuery.getFeatureById(o)); 
+    });
+    lyrQuery.removeFeatures(features);
+    updateGraph();
+    setTimeout(function() {
+      map.removePopup(map.popup);
+      map.popup.destroy();
+      map.popup = null;
+    },100);
+  });
 }
