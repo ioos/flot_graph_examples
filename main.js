@@ -72,61 +72,37 @@ function init() {
     updateGraph();
   });
 
+  var style = new OpenLayers.Style(
+    OpenLayers.Util.applyDefaults({
+       label             : '${getLabel}'
+      ,labelAlign        : 'cm'
+      ,fontFamily        : 'Arial, Helvetica, sans-serif'
+      ,fontSize          : 11
+      ,pointRadius       : '${getPointRadius}' // 8
+      ,strokeColor       : '${color}'
+      ,strokeOpacity     : 0.8
+      ,fillColor         : '#ffffff'
+      ,fillOpacity       : '${getFillOpacity}' // 0.8
+    })
+    ,{
+      context : {
+        getLabel : function(f) {
+          return /\.5$/.test(f.attributes.id) ? '' : f.attributes.id;
+        }
+        ,getFillOpacity : function(f) {
+          return /\.5$/.test(f.attributes.id) ? 0 : 0.8;
+        }
+        ,getPointRadius : function(f) {
+          return /\.5$/.test(f.attributes.id) ? 12 : 8;
+        }
+      }
+    }
+  );
   lyrQuery = new OpenLayers.Layer.Vector(
      'Query points'
     ,{styleMap : new OpenLayers.StyleMap({
-      'default' : new OpenLayers.Style(
-         OpenLayers.Util.applyDefaults({
-           label             : '${getLabel}'
-          ,labelAlign        : 'cm'
-          ,fontFamily        : 'Arial, Helvetica, sans-serif'
-          ,fontSize          : 11
-          ,pointRadius       : '${getPointRadius}' // 8
-          ,strokeColor       : '${color}'
-          ,strokeOpacity     : 0.8
-          ,fillColor         : '#ffffff'
-          ,fillOpacity       : '${getFillOpacity}' // 0.8
-        })
-        ,{
-          context : {
-            getLabel : function(f) {
-              return /\.5$/.test(f.attributes.id) ? '' : f.attributes.id;
-            }
-            ,getFillOpacity : function(f) {
-              return /\.5$/.test(f.attributes.id) ? 0 : 0.8;
-            }
-            ,getPointRadius : function(f) {
-              return /\.5$/.test(f.attributes.id) ? 12 : 8;
-            }
-          }
-        }
-      )
-      ,'select' : new OpenLayers.Style(
-         OpenLayers.Util.applyDefaults({
-           label             : '${getLabel}'
-          ,labelAlign        : 'cm'
-          ,fontFamily        : 'Arial, Helvetica, sans-serif'
-          ,fontSize          : 11
-          ,pointRadius       : '${getPointRadius}' // 8
-          ,strokeColor       : '${color}'
-          ,strokeOpacity     : 0.8
-          ,fillColor         : '#ffffff'
-          ,fillOpacity       : '${getFillOpacity}' // 0.8
-        })
-        ,{
-          context : {
-            getLabel : function(f) {
-              return /\.5$/.test(f.attributes.id) ? '' : f.attributes.id;
-            }
-            ,getFillOpacity : function(f) {
-              return /\.5$/.test(f.attributes.id) ? 0 : 0.8;
-            }
-            ,getPointRadius : function(f) {
-              return /\.5$/.test(f.attributes.id) ? 12 : 8;
-            }
-          }
-        }
-      )
+       'default' : style
+      ,'select'  : style
     })}
   );
 
