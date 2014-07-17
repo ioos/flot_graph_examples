@@ -1,5 +1,6 @@
 var map;
 var lyrQuery;
+var lyrSites;
 var selectFeature;
 var fidQuery = 1;
 var activeQuery = {};
@@ -11,6 +12,14 @@ var y0_axis;
 var y1_axis;
 var hoverDetail;
 var palette = new Rickshaw.Color.Palette();
+
+var var2sabgom = {
+   'Temperature' : 'temp'
+  ,'Salinity'    : 'salt'
+};
+var var2ncsos = {
+   'Salinity' : 'salinity'
+};
 
 function init() {
   $("#variable").buttonset();
@@ -106,6 +115,10 @@ function init() {
     })}
   );
 
+  lyrSites = new OpenLayers.Layer.Vector(
+    'Sites'
+  );
+
   map = new OpenLayers.Map('map',{
     layers  : [
       new OpenLayers.Layer.XYZ(
@@ -134,6 +147,7 @@ function init() {
           )
         })
       })
+      ,lyrSites
       ,lyrQuery
     ]
     ,center : new OpenLayers.LonLat(-83,28).transform(proj4326,proj3857)
@@ -196,9 +210,7 @@ function init() {
     }
   });
 
-  $('#date-slider').bind('valuesChanged',function(e,data){
-  });
-
+/*
   setTimeout(function() {
     var pt4326 = new OpenLayers.LonLat(-78,33);
     var pt = pt4326.clone().transform(proj4326,proj3857);
@@ -213,7 +225,9 @@ function init() {
       ,v   : 'Salinity'
     },0.5);
   },2000);
+*/
 
+  getSites();
 }
 
 function query(center,data,fidOffset) {
@@ -247,31 +261,40 @@ function query(center,data,fidOffset) {
   var z = '-0.986111111111111';
 
   OpenLayers.Request.issue({
-     url : './getSabgom.php?z=' + z + '&lon=' + data.lon + '&lat=' + data.lat + '&minT=' + minT + '&maxT=' + maxT + '&fid=' + fid + '&var=' + data.v + '&off=' + fidOffset
-    ,callback : function(r) {
-      var json = new OpenLayers.Format.JSON().read(r.responseText);
-      var f = _.find(lyrQuery.features,function(o){return o.attributes.id == fid});
-      if (f) {
-        f.attributes.off  = json.off;
-        f.attributes.var  = json.var;
-        f.attributes.data = json.data;
-        f.attributes.min  = json.min;
-        f.attributes.max  = json.max;
-        f.attributes.u    = !_.isEmpty(json.u) ? ' (' + json.u + ')' : '';
-      }
-      delete activeQuery[fid];
-      if (_.size(activeQuery) == 0) {
-        $('#status').html('&nbsp;');
-        $("#refresh").prop('disabled',false);
-        $("#clearAll").prop('disabled',false);
-      }
-      else {
-        var size = _.size(activeQuery);
-        $('#status').html('Processing ' + size + ' ' + (size > 1 ? 'queries' : 'query') + ' <img src="img/progressDots.gif">');
-      }
-      updateGraph();
-    }
+     url      : './getSabgom.php?z=' + z + '&lon=' + data.lon + '&lat=' + data.lat + '&minT=' + minT + '&maxT=' + maxT + '&fid=' + fid + '&var=' + var2sabgom[data.v]
+    ,callback : OpenLayers.Function.bind(processData,null,fid,fidOffset,data.v)
   });
+
+  _.each(lyrSites.features,function(o) {
+    OpenLayers.Request.issue({
+       url      : './getNcSOS.php?' + o.attributes.getObs + '&eventTime=' + minT + '/' + maxT + '&observedProperty=' + var2ncsos[data.v]
+      ,callback : OpenLayers.Function.bind(processData,null,fid,fidOffset,data.v)
+    });
+  });
+}
+
+function processData(fid,off,v,r) {
+  var json = new OpenLayers.Format.JSON().read(r.responseText);
+  var f = _.find(lyrQuery.features,function(o){return o.attributes.id == fid});
+  if (f) {
+    f.attributes.off  = off;
+    f.attributes.var  = v;
+    f.attributes.data = json.data;
+    f.attributes.min  = json.min;
+    f.attributes.max  = json.max;
+    f.attributes.u    = !_.isEmpty(json.u) ? ' (' + json.u + ')' : '';
+  }
+  delete activeQuery[fid];
+  if (_.size(activeQuery) == 0) {
+    $('#status').html('&nbsp;');
+    $("#refresh").prop('disabled',false);
+    $("#clearAll").prop('disabled',false);
+  }
+  else {
+    var size = _.size(activeQuery);
+    $('#status').html('Processing ' + size + ' ' + (size > 1 ? 'queries' : 'query') + ' <img src="img/progressDots.gif">');
+  }
+  updateGraph();
 }
 
 function updateGraph() {
@@ -371,4 +394,27 @@ function popup(d) {
       map.popup = null;
     },100);
   });
+}
+
+function getSites() {
+  var json = [
+    {
+       id     : 'usf.c10.mcat'
+      ,lon    : -82.91999816894531
+      ,lat    : 27.16900062561035
+      ,getObs : 'http://tds.secoora.org/thredds/sos/usf.c10.mcat.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
+      ,properties : ['salinity'] 
+    }
+  ];
+
+  var features = [];
+  _.each(json,function(o) {
+    var f = new OpenLayers.Feature.Vector(
+      new OpenLayers.Geometry.Point(o.lon,o.lat).transform(proj4326,proj3857)
+    );
+    f.attributes = o;
+    features.push(f);
+  });
+
+  lyrSites.addFeatures(features);
 }
