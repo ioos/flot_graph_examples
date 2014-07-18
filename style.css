@@ -25,11 +25,6 @@ body {
   top: 10px;
 }
 
-#status {
-  position: relative;
-  float: right;
-}
-
 #toolbar {
   position: relative;
   padding: 2px;
@@ -46,7 +41,7 @@ body {
   border: 1px solid #AAAAAA;
   position: relative;
   width: 100%;
-  height: 553px;
+  height: 516px;
   padding-right: 30px;
 }
 
@@ -76,6 +71,18 @@ body {
   -webkit-transform:rotate(270deg); /* Opera, Chrome, and Safari */
   -webkit-transform-origin: left top 0;
   color: #b4b4b4;
+}
+
+#legend {
+  display: inline-block;
+  margin: 5px 0 0 0;
+  background: -webkit-gradient(linear,left top,left bottom,color-stop(0%,#67707F),color-stop(100%,#888DA0));
+}
+
+#status {
+  display: inline-block;
+  margin: 2px 0 0 0;
+  float: right;
 }
 
 /* date range slider */

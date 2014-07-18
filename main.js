@@ -8,6 +8,7 @@ var proj3857 = new OpenLayers.Projection("EPSG:3857");
 var proj4326 = new OpenLayers.Projection("EPSG:4326");
 var graph;
 var y_axis;
+var legend;
 var hoverDetail;
 var palette = new Rickshaw.Color.Palette();
 
@@ -236,7 +237,7 @@ function query(center,data) {
   var i = 0;
   OpenLayers.Request.issue({
      url      : './getSabgom.php?z=' + '-0.986111111111111' + '&lon=' + data.lon + '&lat=' + data.lat + '&minT=' + minT + '&maxT=' + maxT + '&fid=' + fids[0] + '&var=' + var2sabgom[data.v]
-    ,callback : OpenLayers.Function.bind(processData,null,fids[i++],data.v,'SABGOM Model')
+    ,callback : OpenLayers.Function.bind(processData,null,fids[i++],data.v,'SABGOM')
   });
   _.each(features,function(o) {
     if (new OpenLayers.Geometry.Point(center.x,center.y).distanceTo(o.geometry.getCentroid()) <= 100000) {
@@ -274,8 +275,10 @@ function processData(fid,v,name,r) {
 
 function updateGraph() {
   $('#y_axis').empty();
+  $('#legend').empty();
   $('#chart').empty();
   delete y_axis;
+  delete legend;
   delete graph;
   delete hoverDetail;
   var min;
@@ -283,7 +286,6 @@ function updateGraph() {
   var series = [];
   _.each(_.sortBy(lyrQuery.features,function(o){return -1 * o.attributes.id}),function(f) {
     if (f.attributes.data) {
-console.log(f.attributes.id);
       min = _.isUndefined(min) || f.attributes.min < min ? f.attributes.min : min;
       max = _.isUndefined(max) || f.attributes.max > max ? f.attributes.max : max;
       series.push({
@@ -293,7 +295,6 @@ console.log(f.attributes.id);
       });
     }
   });
-console.dir([min,max]);
   if (series.length > 0) {
     graph = new Rickshaw.Graph({
        element  : document.getElementById("chart")
@@ -308,6 +309,10 @@ console.dir([min,max]);
       ,orientation : 'left'
       ,tickFormat  : Rickshaw.Fixtures.Number.formatKMBT
       ,element     : document.getElementById('y_axis')
+    });
+    legend = new Rickshaw.Graph.Legend({
+       element : document.querySelector('#legend')
+      ,graph   : graph
     });
     graph.render();
     hoverDetail = new Rickshaw.Graph.HoverDetail({
