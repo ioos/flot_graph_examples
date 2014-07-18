@@ -25,34 +25,20 @@ function init() {
   $("#variable").buttonset();
   $('#variable input[type=radio]').change(function(){
     var v = $(this).attr('id');
-    var off = {};
-    if (v == 'Both') {
-      v = ['Temperature','Salinity'];
-      off = {
-        Temperature : 0
-       ,Salinity    : 0.5
-      };
-    }
-    else {
-      v = [v];
-      off[v] = 0;
-    }
     var features = [];
     _.each(lyrQuery.features,function(o) {
       var c = o.geometry.getCentroid();
       var c4326 = c.clone().transform(proj3857,proj4326);
-      _.each(v,function(p) {
-        if (o.attributes.off != 0.5) {
-          features.push([c,c4326,p]);
-        }
-      });
+      if (Math.floor(o.attributes.id) == o.attributes.id) {
+        features.push([c,c4326,v]);
+      }
     });
     palette = new Rickshaw.Color.Palette();
     lyrQuery.removeAllFeatures();
     fidQuery = 1;
     updateGraph();
     _.each(features,function(o) {
-      query({x : o[0].x,y : o[0].y},{lon : o[1].x,lat : o[1].y,v : o[2]},off[o[2]]);
+      query({x : o[0].x,y : o[0].y},{lon : o[1].x,lat : o[1].y,v : o[2]});
     });
   });
   $("#refresh").button().click(function() {
@@ -60,14 +46,16 @@ function init() {
     _.each(lyrQuery.features,function(o) {
       var c = o.geometry.getCentroid();
       var c4326 = c.clone().transform(proj3857,proj4326);
-      features.push([c,c4326,o.attributes.var,o.attributes.off]);
+      if (Math.floor(o.attributes.id) == o.attributes.id) {
+        features.push([c,c4326,o.attributes.var]);
+      }
     });
     palette = new Rickshaw.Color.Palette();
     lyrQuery.removeAllFeatures();
     fidQuery = 1;
     updateGraph();
     _.each(features,function(o) {
-      query({x : o[0].x,y : o[0].y},{lon : o[1].x,lat : o[1].y,v : o[2]},o[3]);
+      query({x : o[0].x,y : o[0].y},{lon : o[1].x,lat : o[1].y,v : o[2]});
     });
   });
   $("#clearAll").button().click(function() {
@@ -96,13 +84,13 @@ function init() {
     ,{
       context : {
         getLabel : function(f) {
-          return /\.5$/.test(f.attributes.id) ? '' : f.attributes.id;
+          return Math.floor(f.attributes.id) == f.attributes.id ? f.attributes.id : '';
         }
         ,getFillOpacity : function(f) {
-          return /\.5$/.test(f.attributes.id) ? 0 : 0.8;
+          return Math.floor(f.attributes.id) == f.attributes.id ? 0.8 : 0;
         }
         ,getPointRadius : function(f) {
-          return /\.5$/.test(f.attributes.id) ? 12 : 8;
+          return Math.floor(f.attributes.id) == f.attributes.id ? 8 : 12;
         }
       }
     }
@@ -175,26 +163,11 @@ function init() {
     if ($(e.target).attr('class') != 'olPopupCloseBox') {
       var lonLat = map.getLonLatFromPixel(e.xy);
       var lonLat4326 = lonLat.clone().transform(proj3857,proj4326);
-      var v = $("input:radio[name='variable']:checked").attr('id');
-      var off = {};
-      if (v == 'Both') {
-        v = ['Temperature','Salinity'];
-        off = {
-          Temperature : 0
-         ,Salinity    : 0.5
-        };
-      }
-      else {
-        v = [v];
-        off[v] = 0;
-      }
       var i = 0;
-      _.each(v,function(o) {
-        query({x : lonLat.lon,y : lonLat.lat},{
-           lon : lonLat4326.lon
-          ,lat : lonLat4326.lat
-          ,v   : o
-        },off[o]);
+      query({x : lonLat.lon,y : lonLat.lat},{
+         lon : lonLat4326.lon
+        ,lat : lonLat4326.lat
+        ,v   : $("input:radio[name='variable']:checked").attr('id')
       });
     }
   });
@@ -230,27 +203,27 @@ function init() {
   getSites();
 }
 
-function query(center,data,fidOffset) {
+function query(center,data) {
   if (!$('#rh').is(':visible')) {
     $('#lh').animate({left : 0},function() {
       map.updateSize();
       $('#rh').show();
     });
   }
-  var fid;
-  if (fidOffset > 0) {
-    fid = fidQuery - fidOffset; 
+
+  var fids = [];
+  for (var i = 0; i < 1; i += 0.5) {
+    fids.push(fidQuery + i);
+    var f = new OpenLayers.Feature.Vector(
+      new OpenLayers.Geometry.Point(center.x,center.y)
+    );
+    f.attributes.id = fids[fids.length - 1];;
+    f.attributes.color = palette.color();
+    lyrQuery.addFeatures([f]);
+    activeQuery[fids[fids.length - 1]] = true;
   }
-  else {
-    fid = fidQuery++;
-  }
-  var f = new OpenLayers.Feature.Vector(
-    new OpenLayers.Geometry.Point(center.x,center.y)
-  );
-  f.attributes.id = fid;
-  f.attributes.color = palette.color();
-  lyrQuery.addFeatures([f]);
-  activeQuery[fid] = true;
+  fidQuery++;
+
   var size = _.size(activeQuery);
   $("#refresh").prop('disabled',true);
   $("#clearAll").prop('disabled',true);
@@ -258,26 +231,24 @@ function query(center,data,fidOffset) {
 
   var minT = $('#date-slider').dateRangeSlider('min').format('yyyy-mm-dd"T"HH:00:00"Z"');
   var maxT = $('#date-slider').dateRangeSlider('max').format('yyyy-mm-dd"T"HH:00:00"Z"');
-  var z = '-0.986111111111111';
 
   OpenLayers.Request.issue({
-     url      : './getSabgom.php?z=' + z + '&lon=' + data.lon + '&lat=' + data.lat + '&minT=' + minT + '&maxT=' + maxT + '&fid=' + fid + '&var=' + var2sabgom[data.v]
-    ,callback : OpenLayers.Function.bind(processData,null,fid,fidOffset,data.v)
+     url      : './getSabgom.php?z=' + '-0.986111111111111' + '&lon=' + data.lon + '&lat=' + data.lat + '&minT=' + minT + '&maxT=' + maxT + '&fid=' + fids[0] + '&var=' + var2sabgom[data.v]
+    ,callback : OpenLayers.Function.bind(processData,null,fids[0],data.v)
   });
 
   _.each(lyrSites.features,function(o) {
     OpenLayers.Request.issue({
        url      : './getNcSOS.php?' + o.attributes.getObs + '&eventTime=' + minT + '/' + maxT + '&observedProperty=' + var2ncsos[data.v]
-      ,callback : OpenLayers.Function.bind(processData,null,fid,fidOffset,data.v)
+      ,callback : OpenLayers.Function.bind(processData,null,fids[1],data.v)
     });
   });
 }
 
-function processData(fid,off,v,r) {
+function processData(fid,v,r) {
   var json = new OpenLayers.Format.JSON().read(r.responseText);
   var f = _.find(lyrQuery.features,function(o){return o.attributes.id == fid});
   if (f) {
-    f.attributes.off  = off;
     f.attributes.var  = v;
     f.attributes.data = json.data;
     f.attributes.min  = json.min;

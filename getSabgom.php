@@ -38,8 +38,8 @@
       $data['lon'] = $row['lon']['v'];
       $data['lat'] = $row['lat']['v'];
       $data['u'] = $row[$_REQUEST['var']]['u'];
-      $data['min'] = (!isset($data['min']) || $val < $data['min']) ? (float)sprintf("%.02f",$val - (0.1 * $val)) : $data['min'];
-      $data['max'] = (!isset($data['max']) || $val > $data['max']) ? (float)sprintf("%.02f",$val + (0.1 * $val)) : $data['max'];
+      $data['min'] = (!isset($data['min']) || $val < $data['min']) ? (float)sprintf("%.02f",$val - abs(0.1 * $val)) : $data['min'];
+      $data['max'] = (!isset($data['max']) || $val > $data['max']) ? (float)sprintf("%.02f",$val + abs(0.1 * $val)) : $data['max'];
     }
   }
 
