@@ -91,7 +91,7 @@ function init() {
           return Math.floor(f.attributes.id) == f.attributes.id ? 0.8 : 0;
         }
         ,getPointRadius : function(f) {
-          return Math.floor(f.attributes.id) == f.attributes.id ? 8 : 12;
+          return 8 + (f.attributes.id - Math.floor(f.attributes.id)) * 20;
         }
       }
     }
@@ -185,12 +185,12 @@ function init() {
   });
 
   setTimeout(function() {
-    var pt4326 = new OpenLayers.LonLat(-82.91999816894531,27.16900062561035);
+    var pt4326 = new OpenLayers.LonLat(-82.92,27.169);
     var pt = pt4326.clone().transform(proj4326,proj3857);
     query({x : pt.lon,y : pt.lat},{
        lon : pt4326.lon
       ,lat : pt4326.lat
-      ,v   : 'Salinity'
+      ,v   : 'Temperature'
     },0.5);
   },2000);
 
@@ -205,8 +205,16 @@ function query(center,data) {
     });
   }
 
+  // See what sites fall w/i our tolerance.
+  var features = [];
+  _.each(lyrSites.features,function(o) {
+    if (new OpenLayers.Geometry.Point(center.x,center.y).distanceTo(o.geometry.getCentroid()) <= 100000) {
+      features.push(o.clone());
+    }
+  });
+
   var fids = [];
-  for (var i = 0; i < 1; i += 0.5) {
+  for (var i = 0; i < 1; i += 1 / (features.length + 1)) {
     fids.push(fidQuery + i);
     var f = new OpenLayers.Feature.Vector(
       new OpenLayers.Geometry.Point(center.x,center.y)
@@ -226,16 +234,18 @@ function query(center,data) {
   var minT = $('#date-slider').dateRangeSlider('min').format('yyyy-mm-dd"T"HH:00:00"Z"');
   var maxT = $('#date-slider').dateRangeSlider('max').format('yyyy-mm-dd"T"HH:00:00"Z"');
 
+  var i = 0;
   OpenLayers.Request.issue({
      url      : './getSabgom.php?z=' + '-0.986111111111111' + '&lon=' + data.lon + '&lat=' + data.lat + '&minT=' + minT + '&maxT=' + maxT + '&fid=' + fids[0] + '&var=' + var2sabgom[data.v]
-    ,callback : OpenLayers.Function.bind(processData,null,fids[0],data.v,'SABGOM Model')
+    ,callback : OpenLayers.Function.bind(processData,null,fids[i++],data.v,'SABGOM Model')
   });
-
-  _.each(lyrSites.features,function(o) {
-    OpenLayers.Request.issue({
-       url      : './getNcSOS.php?' + o.attributes.getObs + '&eventTime=' + minT + '/' + maxT + '&observedProperty=' + var2ncsos[data.v]
-      ,callback : OpenLayers.Function.bind(processData,null,fids[1],data.v,o.attributes.id)
-    });
+  _.each(features,function(o) {
+    if (new OpenLayers.Geometry.Point(center.x,center.y).distanceTo(o.geometry.getCentroid()) <= 100000) {
+      OpenLayers.Request.issue({
+         url      : './getNcSOS.php?' + o.attributes.getObs + '&eventTime=' + minT + '/' + maxT + '&observedProperty=' + var2ncsos[data.v]
+        ,callback : OpenLayers.Function.bind(processData,null,fids[i++],data.v,o.attributes.id)
+      });
+    }
   });
 }
 
@@ -366,10 +376,21 @@ function getSites() {
   var json = [
     {
        id     : 'usf.c10.mcat'
-      ,lon    : -82.91999816894531
-      ,lat    : 27.16900062561035
+      ,lon    : -82.92
+      ,lat    : 27.169
       ,getObs : 'http://tds.secoora.org/thredds/sos/usf.c10.mcat.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
-      ,properties : ['salinity'] 
+    }
+    ,{
+       id     : 'usf.c12.mcat'
+      ,lon    : -83.721
+      ,lat    : 27.498
+      ,getObs : 'http://tds.secoora.org/thredds/sos/usf.c12.mcat.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
+    }
+    ,{
+       id     : 'usf.c13.mcat'
+      ,lon    : -83.073
+      ,lat    : 26.063
+      ,getObs : 'http://tds.secoora.org/thredds/sos/usf.c13.mcat.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
     }
   ];
 
