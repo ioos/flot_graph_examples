@@ -275,8 +275,8 @@ function processData(fid,v,name,r) {
 
 function updateGraph() {
   $('#y_axis').empty();
-  $('#legend').empty();
   $('#chart').empty();
+  $('#legend').empty();
   delete y_axis;
   delete legend;
   delete graph;

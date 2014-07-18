@@ -1,7 +1,7 @@
 <?php
   date_default_timezone_set('UTC');
   $data = array(
-     'u'    => NULL
+     'u'    => $_REQUEST['observedProperty'] == 'water_temperature' ? 'Celcius' : NULL
     ,'data' => array()
     ,'min'  => NULL
     ,'max'  => NULL
