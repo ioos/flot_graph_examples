@@ -7,9 +7,7 @@ var activeQuery = {};
 var proj3857 = new OpenLayers.Projection("EPSG:3857");
 var proj4326 = new OpenLayers.Projection("EPSG:4326");
 var graph;
-var x_axis;
-var y0_axis;
-var y1_axis;
+var y_axis;
 var hoverDetail;
 var palette = new Rickshaw.Color.Palette();
 
@@ -26,6 +24,7 @@ function init() {
   $("#variable").buttonset();
   $('#variable input[type=radio]').change(function(){
     var v = $(this).attr('id');
+    $('#y_label').html(v);
     var features = [];
     _.each(lyrQuery.features,function(o) {
       var c = o.geometry.getCentroid();
@@ -274,58 +273,41 @@ function processData(fid,v,name,r) {
 }
 
 function updateGraph() {
-  $('#y0_axis').empty();
-  $('#y1_axis').empty();
+  $('#y_axis').empty();
   $('#chart').empty();
-  delete y0_axis;
-  delete y1_axis;
+  delete y_axis;
   delete graph;
   delete hoverDetail;
-  var ranges = {
-     Temperature : [false,false]
-    ,Salinity    : [false,false]
-  };
-  _.each(_.sortBy(lyrQuery.features,function(o){return -1 * o.attributes.id}),function(f) {
-    if (f.attributes.var) {
-      ranges[f.attributes.var][0] = !ranges[f.attributes.var][0] || f.attributes.min < ranges[f.attributes.var][0] ? f.attributes.min : ranges[f.attributes.var][0];
-      ranges[f.attributes.var][1] = !ranges[f.attributes.var][1] || f.attributes.max > ranges[f.attributes.var][1] ? f.attributes.max : ranges[f.attributes.var][1];
-    }
-  });
-  var scales = {
-     Temperature : ranges['Temperature'] ? d3.scale.linear().domain([ranges['Temperature'][0],ranges['Temperature'][1]]) : false
-    ,Salinity    : ranges['Salinity'] ? d3.scale.linear().domain([ranges['Salinity'][0],ranges['Salinity'][1]]) : false
-  };
+  var min;
+  var max;
   var series = [];
   _.each(_.sortBy(lyrQuery.features,function(o){return -1 * o.attributes.id}),function(f) {
     if (f.attributes.data) {
+console.log(f.attributes.id);
+      min = _.isUndefined(min) || f.attributes.min < min ? f.attributes.min : min;
+      max = _.isUndefined(max) || f.attributes.max > max ? f.attributes.max : max;
       series.push({
          name  : 'Query #' + Math.floor(f.attributes.id) + ' ' + f.attributes.var + f.attributes.u + ' from ' + f.attributes.name
         ,data  : f.attributes.data
         ,color : f.attributes.color
-        ,scale : scales[f.attributes.var]
       });
     }
   });
+console.dir([min,max]);
   if (series.length > 0) {
     graph = new Rickshaw.Graph({
        element  : document.getElementById("chart")
       ,renderer : 'line'
       ,series   : series
+      ,min      : min
+      ,max      : max
     });
     var x_axes = new Rickshaw.Graph.Axis.Time({graph : graph});
-    y0_axis = new Rickshaw.Graph.Axis.Y.Scaled({
+    y_axis = new Rickshaw.Graph.Axis.Y({
        graph       : graph
       ,orientation : 'left'
       ,tickFormat  : Rickshaw.Fixtures.Number.formatKMBT
-      ,element     : document.getElementById('y0_axis')
-      ,scale       : scales['Temperature']
-    });
-    y1_axis = new Rickshaw.Graph.Axis.Y.Scaled({
-       graph       : graph
-      ,orientation : 'right'
-      ,tickFormat  : Rickshaw.Fixtures.Number.formatKMBT
-      ,element     : document.getElementById('y1_axis')
-      ,scale       : scales['Salinity']
+      ,element     : document.getElementById('y_axis')
     });
     graph.render();
     hoverDetail = new Rickshaw.Graph.HoverDetail({
