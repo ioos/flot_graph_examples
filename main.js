@@ -18,7 +18,8 @@ var var2sabgom = {
   ,'Salinity'    : 'salt'
 };
 var var2ncsos = {
-   'Salinity' : 'salinity'
+   'Temperature' : 'water_temperature'
+  ,'Salinity'    : 'salinity'
 };
 
 function init() {
@@ -178,27 +179,20 @@ function init() {
       ,max : new Date(Date.now())
     }
     ,defaultValues : {
-       min : new Date(2014,4,1)
-      ,max : new Date(Date.now())
+       min : new Date(2011,4,1)
+      ,max : new Date(2012,0,1)
     }
   });
 
-/*
   setTimeout(function() {
-    var pt4326 = new OpenLayers.LonLat(-78,33);
+    var pt4326 = new OpenLayers.LonLat(-82.91999816894531,27.16900062561035);
     var pt = pt4326.clone().transform(proj4326,proj3857);
-    query({x : pt.lon,y : pt.lat},{
-       lon : pt4326.lon
-      ,lat : pt4326.lat
-      ,v   : 'Temperature'
-    },0);
     query({x : pt.lon,y : pt.lat},{
        lon : pt4326.lon
       ,lat : pt4326.lat
       ,v   : 'Salinity'
     },0.5);
   },2000);
-*/
 
   getSites();
 }
@@ -234,18 +228,18 @@ function query(center,data) {
 
   OpenLayers.Request.issue({
      url      : './getSabgom.php?z=' + '-0.986111111111111' + '&lon=' + data.lon + '&lat=' + data.lat + '&minT=' + minT + '&maxT=' + maxT + '&fid=' + fids[0] + '&var=' + var2sabgom[data.v]
-    ,callback : OpenLayers.Function.bind(processData,null,fids[0],data.v)
+    ,callback : OpenLayers.Function.bind(processData,null,fids[0],data.v,'SABGOM Model')
   });
 
   _.each(lyrSites.features,function(o) {
     OpenLayers.Request.issue({
        url      : './getNcSOS.php?' + o.attributes.getObs + '&eventTime=' + minT + '/' + maxT + '&observedProperty=' + var2ncsos[data.v]
-      ,callback : OpenLayers.Function.bind(processData,null,fids[1],data.v)
+      ,callback : OpenLayers.Function.bind(processData,null,fids[1],data.v,o.attributes.id)
     });
   });
 }
 
-function processData(fid,v,r) {
+function processData(fid,v,name,r) {
   var json = new OpenLayers.Format.JSON().read(r.responseText);
   var f = _.find(lyrQuery.features,function(o){return o.attributes.id == fid});
   if (f) {
@@ -254,6 +248,7 @@ function processData(fid,v,r) {
     f.attributes.min  = json.min;
     f.attributes.max  = json.max;
     f.attributes.u    = !_.isEmpty(json.u) ? ' (' + json.u + ')' : '';
+    f.attributes.name = name;
   }
   delete activeQuery[fid];
   if (_.size(activeQuery) == 0) {
@@ -294,7 +289,7 @@ function updateGraph() {
   _.each(_.sortBy(lyrQuery.features,function(o){return -1 * o.attributes.id}),function(f) {
     if (f.attributes.data) {
       series.push({
-         name  : 'Query #' + Math.floor(f.attributes.id) + ' ' + f.attributes.var + f.attributes.u
+         name  : 'Query #' + Math.floor(f.attributes.id) + ' ' + f.attributes.var + f.attributes.u + ' from ' + f.attributes.name
         ,data  : f.attributes.data
         ,color : f.attributes.color
         ,scale : scales[f.attributes.var]
