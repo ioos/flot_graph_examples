@@ -41,6 +41,9 @@ function init() {
     _.each(features,function(o) {
       query({x : o[0].x,y : o[0].y},{lon : o[1].x,lat : o[1].y,v : o[2]});
     });
+    _.each(_.where(map.layers,{group : 'SABGOM'}),function(o) {
+      o.setVisibility(o.name == 'SABGOM ' + v);
+    });
   });
   $("#refresh").button().click(function() {
     var features = [];
@@ -119,7 +122,39 @@ function init() {
           ,wrapDateLine      : true
         }
       )
-      ,new OpenLayers.Layer.Vector('SABGOM',{
+      ,new OpenLayers.Layer.WMS('SABGOM Temperature'
+        ,'http://omgarch1.meas.ncsu.edu:8080/thredds/wms/fmrc/sabgom/SABGOM_Forecast_Model_Run_Collection_best.ncd'
+        ,{
+           layers : 'temp'
+          ,styles : 'boxfill/rainbow'
+          ,format : 'image/png'
+          ,transparent : true
+          ,COLORSCALERANGE : '20,30'
+        }
+        ,{
+           isBaseLayer : false
+          ,visibility  : false
+          ,projection  : proj3857 
+          ,group       : 'SABGOM'
+        }
+      )
+      ,new OpenLayers.Layer.WMS('SABGOM Salinity'
+        ,'http://omgarch1.meas.ncsu.edu:8080/thredds/wms/fmrc/sabgom/SABGOM_Forecast_Model_Run_Collection_best.ncd'
+        ,{
+           layers : 'salt'
+          ,styles : 'boxfill/rainbow'
+          ,format : 'image/png'
+          ,transparent : true
+          ,COLORSCALERANGE : '30,40'
+        }
+        ,{
+           isBaseLayer : false
+          ,visibility  : false
+          ,projection  : proj3857
+          ,group       : 'SABGOM'
+        }
+      )
+      ,new OpenLayers.Layer.Vector('SABGOM Bounds',{
          strategies : [new OpenLayers.Strategy.Fixed()]
         ,protocol   : new OpenLayers.Protocol.HTTP({
            url    : 'data/sabgom.kml'
@@ -183,6 +218,9 @@ function init() {
       ,max : new Date(2012,0,1)
     }
   });
+  $('#date-slider').bind('valuesChanged',function(e,data){
+    syncWMS();
+  });
 
   setTimeout(function() {
     var pt4326 = new OpenLayers.LonLat(-82.92,27.169);
@@ -195,6 +233,8 @@ function init() {
   },2000);
 
   getSites();
+  syncWMS();
+  map.getLayersByName('SABGOM ' + $('#variable input[type=radio]:checked').attr('id'))[0].setVisibility(true);
 }
 
 function query(center,data) {
@@ -391,4 +431,10 @@ function getSites() {
   });
 
   lyrSites.addFeatures(features);
+}
+
+function syncWMS() {
+  _.each(_.where(map.layers,{group : 'SABGOM'}),function(o) {
+    o.mergeNewParams({TIME : $('#date-slider').dateRangeSlider('min').format('yyyy-mm-dd"T"00:00:00"Z"')});
+  });
 }
