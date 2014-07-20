@@ -43,6 +43,12 @@ function init() {
     });
     _.each(_.where(map.layers,{group : 'SABGOM'}),function(o) {
       o.setVisibility(o.name == 'SABGOM ' + v);
+      if (o.name == 'SABGOM ' + v) {
+        $('#wms_legend img').attr('src',o.getFullRequestString({
+           REQUEST : 'GetLegendGraphic'
+          ,LAYER   : o.params.LAYERS
+        }));
+      }
     });
   });
   $("#refresh").button().click(function() {
@@ -145,7 +151,7 @@ function init() {
           ,styles : 'boxfill/rainbow'
           ,format : 'image/png'
           ,transparent : true
-          ,COLORSCALERANGE : '30,40'
+          ,COLORSCALERANGE : '32.5,37.5'
         }
         ,{
            isBaseLayer : false
@@ -234,7 +240,12 @@ function init() {
 
   getSites();
   syncWMS();
-  map.getLayersByName('SABGOM ' + $('#variable input[type=radio]:checked').attr('id'))[0].setVisibility(true);
+  var lyr = map.getLayersByName('SABGOM ' + $('#variable input[type=radio]:checked').attr('id'))[0];
+  lyr.setVisibility(true);
+  $('#wms_legend img').attr('src',lyr.getFullRequestString({
+     REQUEST : 'GetLegendGraphic'
+    ,LAYER   : lyr.params.LAYERS
+  }));
 }
 
 function query(center,data) {
