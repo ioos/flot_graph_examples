@@ -363,7 +363,7 @@ function updateGraph() {
   if (series.length > 0) {
     graph = new Rickshaw.Graph({
        element  : document.getElementById("chart")
-      ,renderer : 'line'
+      ,renderer : 'scatterplot'
       ,series   : series
       ,min      : min
       ,max      : max

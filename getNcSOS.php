@@ -1,7 +1,7 @@
 <?php
   date_default_timezone_set('UTC');
   $data = array(
-     'u'    => $_REQUEST['observedProperty'] == 'water_temperature' ? 'Celcius' : NULL
+     'u'    => $_REQUEST['observedProperty'] == 'water_temperature' ? 'Celcius' : NULL // CHANGEME
     ,'data' => array()
     ,'min'  => NULL
     ,'max'  => NULL
@@ -20,7 +20,7 @@
     foreach (explode(" ",$values) as $pairs) {
       $p = explode(',',$pairs);
       $val = (float)$p[1];
-      if ($val != -999.9) {
+      if ($val != -999.9) { // CHANGEME
         array_push($data['data'],array(
            'x' => strtotime($p[0])
           ,'y' => (float)$p[1]
