@@ -235,7 +235,7 @@ function init() {
     }
     ,defaultValues : {
        min : new Date(2011,4,1)
-      ,max : new Date(2012,0,1)
+      ,max : new Date(2011,11,31)
     }
   });
   $('#date-slider').bind('valuesChanged',function(e,data){
