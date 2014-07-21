@@ -85,11 +85,11 @@ function init() {
       ,labelAlign        : 'cm'
       ,fontFamily        : 'Arial, Helvetica, sans-serif'
       ,fontSize          : 11
-      ,pointRadius       : '${getPointRadius}' // 8
+      ,pointRadius       : '${getPointRadius}'
       ,strokeColor       : '${color}'
       ,strokeOpacity     : 0.8
       ,fillColor         : '#ffffff'
-      ,fillOpacity       : '${getFillOpacity}' // 0.8
+      ,fillOpacity       : '${getFillOpacity}'
     })
     ,{
       context : {
@@ -97,7 +97,7 @@ function init() {
           return Math.floor(f.attributes.id) == f.attributes.id ? f.attributes.id : '';
         }
         ,getFillOpacity : function(f) {
-          return Math.floor(f.attributes.id) == f.attributes.id ? 0.8 : 0;
+          return Math.floor(f.attributes.id) == f.attributes.id ? 1 : 0;
         }
         ,getPointRadius : function(f) {
           return 8 + (f.attributes.id - Math.floor(f.attributes.id)) * 20;
@@ -115,6 +115,20 @@ function init() {
 
   lyrSites = new OpenLayers.Layer.Vector(
     'Sites'
+    ,{styleMap : new OpenLayers.StyleMap({
+       'default' : OpenLayers.Util.applyDefaults({
+         label             : '${id}'
+        ,labelAlign        : 'cm' 
+        ,fontColor        : '#ffffff'
+        ,fontFamily        : 'Arial, Helvetica, sans-serif'
+        ,fontSize          : 7
+        ,pointRadius       : 7
+        ,strokeOpacity     : 0
+        ,fillColor         : '#3399ff'
+        ,fillOpacity       : 1
+        ,graphicName       : 'square'
+      })
+    })}
   );
 
   map = new OpenLayers.Map('map',{
@@ -336,7 +350,7 @@ function updateGraph() {
   var max;
   var series = [];
   _.each(_.sortBy(lyrQuery.features,function(o){return -1 * o.attributes.id}),function(f) {
-    if (f.attributes.data) {
+    if (!_.isEmpty(f.attributes.data)) {
       min = _.isUndefined(min) || f.attributes.min < min ? f.attributes.min : min;
       max = _.isUndefined(max) || f.attributes.max > max ? f.attributes.max : max;
       series.push({
@@ -413,19 +427,19 @@ function popup(d) {
 function getSites() {
   var json = [
     {
-       id     : 'usf.c10.mcat'
+       id     : 'c10'
       ,lon    : -82.92
       ,lat    : 27.169
       ,getObs : 'http://tds.secoora.org/thredds/sos/usf.c10.mcat.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
     }
     ,{
-       id     : 'usf.c12.mcat'
+       id     : 'c12'
       ,lon    : -83.721
       ,lat    : 27.498
       ,getObs : 'http://tds.secoora.org/thredds/sos/usf.c12.mcat.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
     }
     ,{
-       id     : 'usf.c13.mcat'
+       id     : 'c13'
       ,lon    : -83.073
       ,lat    : 26.063
       ,getObs : 'http://tds.secoora.org/thredds/sos/usf.c13.mcat.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
