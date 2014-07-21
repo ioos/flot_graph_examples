@@ -71,6 +71,7 @@ function init() {
   $("#clearAll").button().click(function() {
     $('#rh').hide();
     $('#lh').animate({left : $('#lh').parent().width() / 2 - $('#lh').width() / 2},function() {
+      $('#date-slider').dateRangeSlider('resize');
       map.updateSize();
     });
     palette = new Rickshaw.Color.Palette();
@@ -121,8 +122,8 @@ function init() {
         ,labelAlign        : 'cm' 
         ,fontColor        : '#ffffff'
         ,fontFamily        : 'Arial, Helvetica, sans-serif'
-        ,fontSize          : 7
-        ,pointRadius       : 7
+        ,fontSize          : 8
+        ,pointRadius       : 9
         ,strokeOpacity     : 0
         ,fillColor         : '#3399ff'
         ,fillOpacity       : 1
@@ -242,6 +243,7 @@ function init() {
     syncWMS();
   });
 
+/*
   setTimeout(function() {
     var pt4326 = new OpenLayers.LonLat(-82.92,27.169);
     var pt = pt4326.clone().transform(proj4326,proj3857);
@@ -251,6 +253,7 @@ function init() {
       ,v   : 'Temperature'
     },0.5);
   },2000);
+*/
 
   getSites();
   syncWMS();
@@ -265,6 +268,7 @@ function init() {
 function query(center,data) {
   if (!$('#rh').is(':visible')) {
     $('#lh').animate({left : 0},function() {
+      $('#date-slider').dateRangeSlider('resize');
       map.updateSize();
       $('#rh').show();
     });
@@ -427,6 +431,24 @@ function popup(d) {
 function getSites() {
   var json = [
     {
+       id     : 'cap2'
+      ,lon    : -79.62
+      ,lat    : 32.8
+      ,getObs : 'http://tds.secoora.org/thredds/sos/carocoops.cap2.buoy.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
+    }
+    ,{
+       id     : 'frp2'
+      ,lon    : -80.4
+      ,lat    : 32.27
+      ,getObs : 'http://tds.secoora.org/thredds/sos/carocoops.frp2.buoy.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
+    }
+    ,{
+       id     : 'sun2'
+      ,lon    : -78.48
+      ,lat    : 33.83
+      ,getObs : 'http://tds.secoora.org/thredds/sos/carocoops.sun2.buoy.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
+    }
+    ,{
        id     : 'c10'
       ,lon    : -82.92
       ,lat    : 27.169
