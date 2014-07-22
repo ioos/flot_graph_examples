@@ -243,7 +243,6 @@ function init() {
     syncWMS();
   });
 
-/*
   setTimeout(function() {
     var pt4326 = new OpenLayers.LonLat(-82.92,27.169);
     var pt = pt4326.clone().transform(proj4326,proj3857);
@@ -253,7 +252,6 @@ function init() {
       ,v   : 'Temperature'
     },0.5);
   },2000);
-*/
 
   getSites();
   syncWMS();
