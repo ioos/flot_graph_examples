@@ -157,6 +157,7 @@ function init() {
           ,visibility  : false
           ,projection  : proj3857 
           ,group       : 'SABGOM'
+          ,opacity     : 0.5
         }
       )
       ,new OpenLayers.Layer.WMS('SABGOM Salinity'
@@ -173,6 +174,7 @@ function init() {
           ,visibility  : false
           ,projection  : proj3857
           ,group       : 'SABGOM'
+          ,opacity     : 0.5
         }
       )
       ,new OpenLayers.Layer.Vector('SABGOM Bounds',{
