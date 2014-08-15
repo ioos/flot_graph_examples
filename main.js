@@ -367,7 +367,9 @@ function updateGraph() {
   if (series.length > 0) {
     graph = new Rickshaw.Graph({
        element  : document.getElementById("chart")
-      ,renderer : 'scatterplot'
+      ,renderer : 'line'
+      // ,renderer : 'scatterplot'
+      // ,dotSize  : 2
       ,series   : series
       ,min      : min
       ,max      : max
@@ -452,19 +454,19 @@ function getSites() {
        id     : 'c10'
       ,lon    : -82.92
       ,lat    : 27.169
-      ,getObs : 'http://tds.secoora.org/thredds/sos/usf.c10.mcat.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
+      ,getObs : 'http://tds.secoora.org/thredds/sos/usf.c10.mcat_2011.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
     }
     ,{
        id     : 'c12'
       ,lon    : -83.721
       ,lat    : 27.498
-      ,getObs : 'http://tds.secoora.org/thredds/sos/usf.c12.mcat.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
+      ,getObs : 'http://tds.secoora.org/thredds/sos/usf.c12.mcat_2011.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
     }
     ,{
        id     : 'c13'
       ,lon    : -83.073
       ,lat    : 26.063
-      ,getObs : 'http://tds.secoora.org/thredds/sos/usf.c13.mcat.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
+      ,getObs : 'http://tds.secoora.org/thredds/sos/usf.c13.mcat_2011.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all'
     }
   ];
 

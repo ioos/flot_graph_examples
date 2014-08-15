@@ -1,6 +1,7 @@
 <?php
   $url = sprintf(
-     "http://omgarch1.meas.ncsu.edu:8080/thredds/ncss/grid/fmrc/sabgom/SABGOM_Forecast_Model_Run_Collection_best.ncd?var=%s&latitude=%f&longitude=%f&time_start=%s&time_end=%s&accept=xml&vertCoord=%f"
+//     "http://omgarch1.meas.ncsu.edu:8080/thredds/ncss/grid/fmrc/sabgom/SABGOM_Forecast_Model_Run_Collection_best.ncd?var=%s&latitude=%f&longitude=%f&time_start=%s&time_end=%s&accept=xml&vertCoord=%f"
+     "http://tds.secoora.org/thredds/ncss/grid/clim_daily_avg_surface.nc?var=%s&latitude=%f&longitude=%f&time_start=%s&time_end=%s&accept=xml&vertCoord=%f"
     ,$_REQUEST['var']
     ,$_REQUEST['lat']
     ,$_REQUEST['lon']
