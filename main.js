@@ -7,6 +7,21 @@ var proj3857 = new OpenLayers.Projection("EPSG:3857");
 var proj4326 = new OpenLayers.Projection("EPSG:4326");
 
 function init() {
+  $('#coords .btn-primary').on('click',function() {
+    lyrQuery.removeAllFeatures();
+    var f = new OpenLayers.Feature.Vector(
+      new OpenLayers.Geometry.Point($('#customLon').val(),$('#customLat').val()).transform(proj4326,proj3857)
+    );
+    lyrQuery.addFeatures([f]);
+    $('#location').selectpicker('val','custom');
+    $('#coords').modal('hide');
+    query();
+  });
+  $('#coords .btn-default').on('click',function() {
+    $('#location').selectpicker('val','custom');
+    $('#coords').modal('hide');
+  });
+
   $('#time-series-graph').bind('plothover',function(event,pos,item) {
     if (item) {
       var x = new Date(item.datapoint[0]);
@@ -95,6 +110,11 @@ function init() {
       map.setCenter([f.geometry.x,f.geometry.y],5);
       query();
     }
+    else if (val == 'manual') {
+      $('#coords').modal({
+
+      });
+    }
   });
 
   $('.selectpicker').selectpicker({width : 200});
@@ -152,7 +172,7 @@ function init() {
   lyrQuery.addFeatures([f.clone()]);
   map.setCenter([f.geometry.x,f.geometry.y],5);
 
-  query();
+//  query();
 }
 
 function plot() {

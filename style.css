@@ -53,3 +53,23 @@ body {
 .btn-custom-lighten.active {
   background-color: #388fa2 ;
 }
+
+#coords .modal-dialog {
+  width : 320px;
+}
+
+#coords .modal-dialog .form-group {
+  margin-bottom : 3px;
+}
+
+#coords .modal-dialog .spacer {
+  height : 10px;
+}
+
+#coords .modal-footer {
+  margin-top : 0;
+}
+
+#coords .form-horizontal .control-label {
+    text-align: left;
+}
