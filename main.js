@@ -1,5 +1,8 @@
 var plotData = [];
+var lyrQuery;
+var lyrCatalog = new OpenLayers.Layer.Vector();
 var map;
+var spinner;
 var proj3857 = new OpenLayers.Projection("EPSG:3857");
 var proj4326 = new OpenLayers.Projection("EPSG:4326");
 
@@ -28,9 +31,92 @@ function init() {
     }
   });
 
+  _.each(catalog.variables.sort(),function(o) {
+    $('#vars').after($('</h4>')).append('<button type="button" data-value="' + o + '" class="btn btn-default">' + o + '</button> ');
+  });
+  $('#vars [data-value="' + defaults.var + '"]').removeClass('btn-default').addClass('btn-custom-lighten active');
+  $('#vars button').click(function() {
+    $(this).blur();
+    var selVal = $(this).data('value');
+    $('#vars button').each(function() {
+      if ($(this).data('value') == selVal) {
+        $(this).removeClass('btn-default').addClass('btn-custom-lighten').addClass('active');
+      }
+      else {
+        $(this).removeClass('btn-custom-lighten').removeClass('active').addClass('btn-default');
+      }
+    });
+    query();
+  });
+
+  _.each(catalog.years.sort(),function(o) {
+    $('#years').after($('</h4>')).append('<button type="button" data-value="' + o + '" class="btn btn-default">' + o + '</button> ');
+  });
+  $('#years [data-value="' + defaults.year + '"]').removeClass('btn-default').addClass('btn-custom-lighten active');
+  $('#years button').click(function() {
+    $(this).blur();
+    var selVal = $(this).data('value');
+    $('#years button').each(function() {
+      if ($(this).data('value') == selVal) {
+        $(this).removeClass('btn-default').addClass('btn-custom-lighten').addClass('active');
+      }
+      else {
+        $(this).removeClass('btn-custom-lighten').removeClass('active').addClass('btn-default');
+      }
+    });
+    query();
+  });
+
+  var wkt = new OpenLayers.Format.WKT();
+  var i = 1;
+  _.each(_.sortBy(_.keys(catalog.sites),function(o){return o.toUpperCase()}),function(grp) {
+    $('#location').append('<optgroup label="' + grp + '">');
+    _.each(_.sortBy(_.keys(catalog.sites[grp]),function(o){return o.toUpperCase()}),function(site) {
+      var selected = defaults.site == site ? 'selected="selected"' : '';
+      $($('#location optgroup')[i]).append('<option value="' + site + '" ' + selected + '>' + site + '</option>');
+      var f = wkt.read(catalog.sites[grp][site]['wkt']);
+      f.geometry.transform(proj4326,proj3857);
+      f.attributes = {
+         'group' : grp
+        ,'name'  : site
+      };
+      lyrCatalog.addFeatures([f]);
+    });
+    i++;
+  });
+
+  $('#location').change(function() {
+    $(this).blur();
+    lyrQuery.removeAllFeatures();
+    var val = $(this).selectpicker().val();
+    var f = _.find(lyrCatalog.features,function(o){return o.attributes.name == val});
+    if (f) {
+      lyrQuery.addFeatures([f.clone()]);
+      map.setCenter([f.geometry.x,f.geometry.y],5);
+      query();
+    }
+  });
+
   $('.selectpicker').selectpicker({width : 200});
 
   resize();
+
+  var style = new OpenLayers.Style(
+    OpenLayers.Util.applyDefaults({
+       pointRadius       : 8
+      ,strokeColor       : '#000000'
+      ,strokeOpacity     : 0.8
+      ,fillColor         : '#ff0000'
+      ,fillOpacity       : 0.8
+    })
+  );
+  lyrQuery = new OpenLayers.Layer.Vector(
+     'Query points'
+    ,{styleMap : new OpenLayers.StyleMap({
+       'default' : style
+      ,'select'  : style
+    })}
+  );
 
   map = new OpenLayers.Map('map',{
     layers  : [
@@ -43,13 +129,37 @@ function init() {
           ,wrapDateLine      : true
         }
       )
+      ,lyrQuery
     ]
     ,center : new OpenLayers.LonLat(-83,28).transform(proj4326,proj3857)
-    ,zoom   : 5
+    ,zoom   : 4
   });
+
+  map.events.register('click',this,function(e) {
+    lyrQuery.removeAllFeatures();
+    var lonLat = map.getLonLatFromPixel(e.xy);
+    var f = new OpenLayers.Feature.Vector(
+      new OpenLayers.Geometry.Point(lonLat.lon,lonLat.lat)
+    );
+    lyrQuery.addFeatures([f]);
+    $('#location').selectpicker('val','custom');
+    query();
+  });
+
+  var f = _.find(lyrCatalog.features,function(o) {
+    return o.attributes.name == defaults.site;
+  });
+  lyrQuery.addFeatures([f.clone()]);
+  map.setCenter([f.geometry.x,f.geometry.y],5);
+
+  query();
 }
 
 function plot() {
+  if (spinner) {
+    spinner.stop();
+    spinner = null;
+  }
   var plot = $.plot(
      $('#time-series-graph')
     ,plotData
@@ -70,25 +180,96 @@ function plot() {
 }
 
 function query() {
+  if (spinner) {
+    return;
+  }
+  // from http://fgnass.github.io/spin.js/
+  var opts = {
+    lines: 17, // The number of lines to draw
+    length: 35, // The length of each line
+    width: 10, // The line thickness
+    radius: 54, // The radius of the inner circle
+    corners: 1, // Corner roundness (0..1)
+    rotate: 0, // The rotation offset
+    direction: 1, // 1: clockwise, -1: counterclockwise
+    color: '#000', // #rgb or #rrggbb or array of colors
+    speed: 1, // Rounds per second
+    trail: 60, // Afterglow percentage
+    shadow: false, // Whether to render a shadow
+    hwaccel: false, // Whether to use hardware acceleration
+    className: 'spinner', // The CSS class to assign to the spinner
+    zIndex: 2e9, // The z-index (defaults to 2000000000)
+    top: '50%', // Top position relative to parent
+    left: '50%' // Left position relative to parent
+  };
+  spinner = new Spinner(opts).spin(document.getElementById('time-series-graph'));
+
+  // Find the 1st hit in the catalog that is closest to the query point.
+  var queryPt = lyrQuery.features[0].geometry;
+  var siteQuery = _.find(lyrCatalog.features,function(f) {
+    return f.geometry.distanceTo(queryPt) == 0;
+  });
+  var url = '';
+  var title = '';
+  if (siteQuery) {
+    var geom = siteQuery.geometry.clone().transform(proj3857,proj4326);
+    url = catalog['sites'][siteQuery.attributes.group][siteQuery.attributes.name].getObs(
+       $('#vars .active').text()
+      ,$('#years .active').text()
+    );
+    title = ' from ' + siteQuery.attributes.name;
+  }
+  else {
+    var geom = queryPt.clone().transform(proj3857,proj4326);
+    url = catalog['models']['SABGOM'].getObs(
+       $('#vars .active').text()
+      ,$('#years .active').text()
+      ,geom.x
+      ,geom.y
+    );
+    title = ' from ' + 'SABGOM';
+  }
+
+  plotData = [];
   $.ajax({
-     url      : 'get.php?' + 'http://tds.secoora.org/thredds/ncss/grid/clim_daily_avg_surface.nc?var=temp&latitude=27.169&longitude=-82.92&time_start=2011-05-01T00:00:00Z&time_end=2011-12-31T00:00:00Z&accept=xml&vertCoord=-0.986111111111111'
+     url      : url
     ,dataType : 'xml'
-    ,title    : 'sst'
+    ,title    : $('#vars .active').text() + title
     ,success  : function(r) {
       var $xml = $(r);
-      var uom;
-      var d = {
-         data  : []
-        ,label : '&nbsp;<a target=_blank href="' + this.url + '">' + this.title + ' (' + 'C' + ')' + '</a>'
-      };
-      $xml.find('point').each(function() {
-        var point = $(this);
-        d.data.push([
-           isoDateToDate(point.find('[name=date]').text())
-          ,point.find('[name=temp]').text()
-        ]); 
-        d.uom = point.find('[name=temp]').attr('units');
-      });
+      var title = this.title;
+      var url   = this.url;
+      var d = {data  : [],color : '#5CA7B7'};
+      var ncss = $xml.find('point');
+      if (ncss.length > 0) { // NetcdfSubset resposne
+        ncss.each(function() {
+          var point = $(this);
+          d.data.push([
+             isoDateToDate(point.find('[name=date]').text())
+            ,point.find('[name=temp]').text()
+          ]); 
+          d.label = '&nbsp;<a target=_blank href="' + url + '">' + title + ' (' + point.find('[name=temp]').attr('units') + ')' + '</a>';
+        });
+      }
+      else { // ncSOS resposne
+        // var nil = $xml.find('nilValue').text();
+        var nil = ["-999.9","-999.0"]; // CHANGEME #
+        d.label = '&nbsp;<a target=_blank href="' + url + '">' + title + ' (' + $xml.find('uom[code]').attr('code') + ')' + '</a>';
+        _.each($xml.find('values').text().split(" "),function(o) {
+          var a = o.split(',');
+          if ((a.length == 2 || a.length == 3) && $.isNumeric(a[1])) {
+            // only take the 1st value for each time
+            var t = isoDateToDate(a[0]).getTime();
+            if (!_.find(d.data,function(o){return o[0] == t}) && nil.indexOf(a[1]) < 0) {
+if (a[1] < 0) {
+  1;
+}
+              d.data.push([t,a[1]]);
+            }
+          }
+        });
+      }
+
       plotData.push(d);
       plot();
     }
