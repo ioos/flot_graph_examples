@@ -7,16 +7,6 @@ var proj3857 = new OpenLayers.Projection("EPSG:3857");
 var proj4326 = new OpenLayers.Projection("EPSG:4326");
 
 function init() {
-  $('#coords .btn-primary').on('click',function() {
-    lyrQuery.removeAllFeatures();
-    var f = new OpenLayers.Feature.Vector(
-      new OpenLayers.Geometry.Point($('#customLon').val(),$('#customLat').val()).transform(proj4326,proj3857)
-    );
-    lyrQuery.addFeatures([f]);
-    $('#location').selectpicker('val','custom');
-    $('#coords').modal('hide');
-    query();
-  });
   $('#coords .btn-default').on('click',function() {
     $('#location').selectpicker('val','custom');
     $('#coords').modal('hide');
@@ -102,18 +92,76 @@ function init() {
 
   $('#location').change(function() {
     $(this).blur();
-    lyrQuery.removeAllFeatures();
     var val = $(this).selectpicker().val();
-    var f = _.find(lyrCatalog.features,function(o){return o.attributes.name == val});
-    if (f) {
-      lyrQuery.addFeatures([f.clone()]);
-      map.setCenter([f.geometry.x,f.geometry.y],5);
-      query();
+    if (val == 'manual') {
+      $('#coords')
+        .bootstrapValidator({
+           excluded      : [':disabled']
+          ,feedbackIcons : {
+            valid      : 'glyphicon glyphicon-ok',
+            invalid    : 'glyphicon glyphicon-remove',
+            validating : 'glyphicon glyphicon-refresh'
+          }
+          ,fields : {
+            customLat : {
+              validators : {
+                notEmpty : {
+                  message: 'This field is required.'
+                }
+                ,callback : {
+                  callback : function(value,validator) {
+                    return $.isNumeric(value);
+                  }
+                }
+              }
+            }
+            ,customLon : {
+              validators : {
+                notEmpty : {
+                  message: 'This field is required.'
+                }
+                ,callback : {
+                  callback : function(value,validator) {
+                    return $.isNumeric(value);
+                  }
+                }
+              }
+            }
+          }
+        })
+        .on('shown.bs.modal', function() {
+          $('#coords').bootstrapValidator('resetForm',true);
+          $('#coords').find('[name="customLat"]').focus();
+        })
+        .on('error.validator.bv', function(e, data) {
+          data.element
+          .data('bv.messages')
+          // Hide all the messages
+          .find('.help-block[data-bv-for="' + data.field + '"]').hide()
+          // Show only message associated with current validator
+          .filter('[data-bv-validator="' + data.validator + '"]').show();
+        })
+        .on('success.form.bv', function(e) {
+          e.preventDefault();
+          lyrQuery.removeAllFeatures();
+          var f = new OpenLayers.Feature.Vector(
+            new OpenLayers.Geometry.Point($('#customLon').val(),$('#customLat').val()).transform(proj4326,proj3857)
+          );
+          lyrQuery.addFeatures([f]);
+          $('#location').selectpicker('val','custom');
+          $('#coords').modal('hide');
+          query();
+        })
+        .modal('show');
     }
-    else if (val == 'manual') {
-      $('#coords').modal({
-
-      });
+    else {
+      lyrQuery.removeAllFeatures();
+      var f = _.find(lyrCatalog.features,function(o){return o.attributes.name == val});
+      if (f) {
+        lyrQuery.addFeatures([f.clone()]);
+        map.setCenter([f.geometry.x,f.geometry.y],5);
+        query();
+      }
     }
   });
 
@@ -172,7 +220,7 @@ function init() {
   lyrQuery.addFeatures([f.clone()]);
   map.setCenter([f.geometry.x,f.geometry.y],5);
 
-//  query();
+  query();
 }
 
 function plot() {

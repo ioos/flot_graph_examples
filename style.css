@@ -55,7 +55,7 @@ body {
 }
 
 #coords .modal-dialog {
-  width : 320px;
+  width : 350px;
 }
 
 #coords .modal-dialog .form-group {
@@ -67,7 +67,7 @@ body {
 }
 
 #coords .modal-footer {
-  margin-top : 0;
+  padding: 15px 0px 0px 0px;
 }
 
 #coords .form-horizontal .control-label {
