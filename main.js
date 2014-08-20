@@ -317,35 +317,38 @@ function query() {
   }
 
   plotData = [];
-  $.ajax({
-     url      : urls[0]
-    ,dataType : 'xml'
-    ,title    : $('#vars .active').text() + title
-    ,success  : function(r) {
-      plotData.push(processData($(r),this.url,this.title));
-      plot();
-    }
-    ,error    : function(r) {
-      plot();
-    }
-  });
-
-/*
-  if (/clim_daily_avg_surface/.test(urls[1])) {
+  $.when(
     $.ajax({
-       url      : urls[1]
+       url      : urls[0]
       ,dataType : 'xml'
       ,title    : $('#vars .active').text() + title
       ,success  : function(r) {
         plotData.push(processData($(r),this.url,this.title));
-        plot();
       }
       ,error    : function(r) {
-        plot();
       }
-    });
-  }
-*/
+    })
+    ,(function() {
+      // CHANGEME
+      if (/clim_.*_avg_surface/.test(urls[1])) {
+        return $.ajax({
+           url      : urls[1]
+          ,dataType : 'xml'
+          ,title    : $('#vars .active').text() + title
+          ,success  : function(r) {
+            plotData.unshift(processData($(r),this.url,this.title));
+          }
+          ,error    : function(r) {
+          }
+        });
+      }
+      else {
+        return false;
+      }
+    })()
+  ).done(function() {
+    plot();
+  });
 }
 
 function processData($xml,url,title) {
@@ -363,7 +366,7 @@ function processData($xml,url,title) {
   }
   else { // ncSOS resposne
     // var nil = $xml.find('nilValue').text();
-    var nil = ["-999.9","-999.0"]; // CHANGEME #
+    var nil = ["-999.9","-999.0"]; // CHANGEME
     d.label = '&nbsp;<a target=_blank href="' + url + '">' + title + ' (' + $xml.find('uom[code]').attr('code') + ')' + '</a>';
     _.each($xml.find('values').text().split(" "),function(o) {
       var a = o.split(',');

@@ -74,7 +74,7 @@ var catalog = {
            'Temperature' : 'temp'
           ,'Salinity'    : 'salt'
         };
-        return 'get.php?' + 'http://tds.secoora.org/thredds/ncss/grid/clim_daily_avg_surface.nc?var=' + n2o[v] + '&latitude=' + lat + '&longitude=' + lon + '&time_start=' + year0 + '-01-01T00:00:00Z&time_end=' + year1 + '-12-31T23:59:59Z&accept=xml&vertCoord=-0.986111111111111';
+        return 'get.php?' + 'http://tds.secoora.org/thredds/ncss/grid/clim_monthly_avg_surface.nc?var=' + n2o[v] + '&latitude=' + lat + '&longitude=' + lon + '&time_start=' + year0 + '-01-01T00:00:00Z&time_end=' + year1 + '-12-31T23:59:59Z&accept=xml&vertCoord=-0.986111111111111';
       }
       ,'wkt' : ''
     }
