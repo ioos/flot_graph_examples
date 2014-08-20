@@ -277,74 +277,106 @@ function query() {
   var siteQuery = _.find(lyrCatalog.features,function(f) {
     return f.geometry.distanceTo(queryPt) == 0;
   });
-  var url = '';
+  var urls = [];
   var title = '';
   if (siteQuery) {
     var geom = siteQuery.geometry.clone().transform(proj3857,proj4326);
-    url = catalog['sites'][siteQuery.attributes.group][siteQuery.attributes.name].getObs(
-       $('#vars .active').text()
-      ,$('#years .active').text()
-    );
+    urls = [
+      catalog['sites'][siteQuery.attributes.group][siteQuery.attributes.name].getObs(
+         $('#vars .active').text()
+        ,$('#years .active').text()
+        ,$('#years .active').text()
+      )
+      ,catalog['sites'][siteQuery.attributes.group][siteQuery.attributes.name].getObs(
+         $('#vars .active').text()
+        ,catalog.years[0]
+        ,catalog.years[catalog.years.length - 1]
+      )
+    ]
     title = ' from ' + siteQuery.attributes.name;
   }
   else {
     var geom = queryPt.clone().transform(proj3857,proj4326);
-    url = catalog['models']['SABGOM'].getObs(
-       $('#vars .active').text()
-      ,$('#years .active').text()
-      ,geom.x
-      ,geom.y
-    );
+    urls = [
+      catalog['models']['SABGOM'].getObs(
+         $('#vars .active').text()
+        ,$('#years .active').text()
+        ,$('#years .active').text()
+        ,geom.x
+        ,geom.y
+      )
+      ,catalog['models']['SABGOM'].getObs(
+         $('#vars .active').text()
+        ,catalog.years[0]
+        ,catalog.years[catalog.years.length - 1]
+        ,geom.x
+        ,geom.y
+      )
+    ]
     title = ' from ' + 'SABGOM';
   }
 
   plotData = [];
   $.ajax({
-     url      : url
+     url      : urls[0]
     ,dataType : 'xml'
     ,title    : $('#vars .active').text() + title
     ,success  : function(r) {
-      var $xml = $(r);
-      var title = this.title;
-      var url   = this.url;
-      var d = {data  : [],color : '#5CA7B7'};
-      var ncss = $xml.find('point');
-      if (ncss.length > 0) { // NetcdfSubset resposne
-        ncss.each(function() {
-          var point = $(this);
-          d.data.push([
-             isoDateToDate(point.find('[name=date]').text())
-            ,point.find('[name=temp]').text()
-          ]); 
-          d.label = '&nbsp;<a target=_blank href="' + url + '">' + title + ' (' + point.find('[name=temp]').attr('units') + ')' + '</a>';
-        });
-      }
-      else { // ncSOS resposne
-        // var nil = $xml.find('nilValue').text();
-        var nil = ["-999.9","-999.0"]; // CHANGEME #
-        d.label = '&nbsp;<a target=_blank href="' + url + '">' + title + ' (' + $xml.find('uom[code]').attr('code') + ')' + '</a>';
-        _.each($xml.find('values').text().split(" "),function(o) {
-          var a = o.split(',');
-          if ((a.length == 2 || a.length == 3) && $.isNumeric(a[1])) {
-            // only take the 1st value for each time
-            var t = isoDateToDate(a[0]).getTime();
-            if (!_.find(d.data,function(o){return o[0] == t}) && nil.indexOf(a[1]) < 0) {
-if (a[1] < 0) {
-  1;
-}
-              d.data.push([t,a[1]]);
-            }
-          }
-        });
-      }
-
-      plotData.push(d);
+      plotData.push(processData($(r),this.url,this.title));
       plot();
     }
     ,error    : function(r) {
       plot();
     }
   });
+
+/*
+  if (/clim_daily_avg_surface/.test(urls[1])) {
+    $.ajax({
+       url      : urls[1]
+      ,dataType : 'xml'
+      ,title    : $('#vars .active').text() + title
+      ,success  : function(r) {
+        plotData.push(processData($(r),this.url,this.title));
+        plot();
+      }
+      ,error    : function(r) {
+        plot();
+      }
+    });
+  }
+*/
+}
+
+function processData($xml,url,title) {
+  var d = {data  : []};
+  var ncss = $xml.find('point');
+  if (ncss.length > 0) { // NetcdfSubset resposne
+    ncss.each(function() {
+      var point = $(this);
+      d.data.push([
+         isoDateToDate(point.find('[name=date]').text())
+        ,point.find('[name=temp]').text()
+      ]);
+      d.label = '&nbsp;<a target=_blank href="' + url + '">' + title + ' (' + point.find('[name=temp]').attr('units') + ')' + '</a>';
+    });
+  }
+  else { // ncSOS resposne
+    // var nil = $xml.find('nilValue').text();
+    var nil = ["-999.9","-999.0"]; // CHANGEME #
+    d.label = '&nbsp;<a target=_blank href="' + url + '">' + title + ' (' + $xml.find('uom[code]').attr('code') + ')' + '</a>';
+    _.each($xml.find('values').text().split(" "),function(o) {
+      var a = o.split(',');
+      if ((a.length == 2 || a.length == 3) && $.isNumeric(a[1])) {
+        // only take the 1st value for each time
+        var t = isoDateToDate(a[0]).getTime();
+        if (!_.find(d.data,function(o){return o[0] == t}) && nil.indexOf(a[1]) < 0) {
+          d.data.push([t,a[1]]);
+        }
+      }
+    });
+  }
+  return d;
 }
 
 function showToolTip(x,y,contents) {
