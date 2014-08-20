@@ -355,8 +355,8 @@ function query() {
               dMin.push([new Date($('#years .active').text(),Number(k) - 1),_.min(_.values(v))]);
               dMax.push([new Date($('#years .active').text(),Number(k) - 1),_.max(_.values(v))]); 
             });
-            plotData.unshift({label : 'min',data : _.sortBy(dMin,function(o){return o[0].getTime()})});
-            plotData.unshift({label : 'max',data : _.sortBy(dMax,function(o){return o[0].getTime()})});
+            plotData.unshift({id : 'min',data : _.sortBy(dMin,function(o){return o[0].getTime()})});
+            plotData.unshift({lines : {show : true,fill : true},id : 'max',fillBetween : 'min',data : _.sortBy(dMax,function(o){return o[0].getTime()})});
             plot();
             console.dir([d,dMin,dMax]);
           }
