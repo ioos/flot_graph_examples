@@ -220,7 +220,7 @@ function init() {
   lyrQuery.addFeatures([f.clone()]);
   map.setCenter([f.geometry.x,f.geometry.y],5);
 
-  query();
+  // query();
 }
 
 function plot() {
@@ -336,7 +336,28 @@ function query() {
           ,dataType : 'xml'
           ,title    : $('#vars .active').text() + title
           ,success  : function(r) {
-            plotData.unshift(processData($(r),this.url,this.title));
+            var d = {};
+            _.each(processData($(r),this.url,this.title).data,function(o) {
+              var y = o[0].format('UTC:yyyy');
+              var m = o[0].format('UTC:mm');
+              if (!d[m]) {
+                d[m] = {};
+              }
+              if (!d[m][y]) {
+                d[m][y] = [];
+              }
+              d[m][y] = Number(o[1]);
+            });
+            var dMin = [];
+            var dMax = [];
+            _.each(d,function(v,k) {
+              dMin.push([new Date($('#years .active').text(),Number(k) - 1),_.min(_.values(v))]);
+              dMax.push([new Date($('#years .active').text(),Number(k) - 1),_.max(_.values(v))]); 
+            });
+            plotData.unshift({label : 'min',data : _.sortBy(dMin,function(o){return o[0].getTime()})});
+            plotData.unshift({label : 'max',data : _.sortBy(dMax,function(o){return o[0].getTime()})});
+            plot();
+            console.dir([d,dMin,dMax]);
           }
           ,error    : function(r) {
           }
@@ -354,7 +375,7 @@ function query() {
 function processData($xml,url,title) {
   var d = {data  : []};
   var ncss = $xml.find('point');
-  if (ncss.length > 0) { // NetcdfSubset resposne
+  if (ncss.length > 0) { // NetcdfSubset response
     ncss.each(function() {
       var point = $(this);
       d.data.push([
@@ -364,7 +385,7 @@ function processData($xml,url,title) {
       d.label = '&nbsp;<a target=_blank href="' + url + '">' + title + ' (' + point.find('[name=temp]').attr('units') + ')' + '</a>';
     });
   }
-  else { // ncSOS resposne
+  else { // ncSOS response
     // var nil = $xml.find('nilValue').text();
     var nil = ["-999.9","-999.0"]; // CHANGEME
     d.label = '&nbsp;<a target=_blank href="' + url + '">' + title + ' (' + $xml.find('uom[code]').attr('code') + ')' + '</a>';
