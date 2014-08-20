@@ -19,9 +19,10 @@ function init() {
       if (prevPoint != item.dataIndex) {
         $('#tooltip').remove();
         var a = item.series.label.match(/(\([^\)]*\))<\/a>/);
-        if (a.length == 2) {
-          var u = a.pop();
-          u = u.substr(1,u.length - 2);
+        var u = '';
+        if (a && a.length == 2) {
+          var b = a.pop();
+          u = b.substr(1,b.length - 2);
         }
         showToolTip(
            item.pageX
