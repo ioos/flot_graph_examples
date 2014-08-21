@@ -382,6 +382,7 @@ function query() {
               ,data        : _.sortBy(dMax,function(o){return o[0].getTime()})
               ,label       : false
               ,fillBetween : 'min'
+              ,color       : "#ffff00"
             });
             plotData.push({
                id    : 'min'
