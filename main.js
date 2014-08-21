@@ -221,7 +221,7 @@ function init() {
   lyrQuery.addFeatures([f.clone()]);
   map.setCenter([f.geometry.x,f.geometry.y],5);
 
-  query();
+  // query();
 }
 
 function plot() {
@@ -278,156 +278,105 @@ function query() {
   var siteQuery = _.find(lyrCatalog.features,function(f) {
     return f.geometry.distanceTo(queryPt) == 0;
   });
-  var urls = [];
+  var reqs = [];
   var title = '';
   if (siteQuery) {
     var geom = siteQuery.geometry.clone().transform(proj3857,proj4326);
-    urls = [
-      catalog['sites'][siteQuery.attributes.group][siteQuery.attributes.name].getObs(
-         $('#vars .active').text()
-        ,$('#years .active').text()
-        ,$('#years .active').text()
-      )
-      ,catalog['sites'][siteQuery.attributes.group][siteQuery.attributes.name].getObs(
-         $('#vars .active').text()
-        ,catalog.years[0]
-        ,catalog.years[catalog.years.length - 1]
-      )
-    ]
-    title = ' from ' + siteQuery.attributes.name;
+    reqs = [
+      {
+        url : catalog['sites'][siteQuery.attributes.group][siteQuery.attributes.name].getObs(
+           $('#vars .active').text()
+          ,$('#years .active').text()
+        ) 
+        ,title : $('#years .active').text() + ' ' + $('#vars .active').text() + ' from ' + siteQuery.attributes.name
+      }
+    ];
   }
   else {
     var geom = queryPt.clone().transform(proj3857,proj4326);
-    urls = [
-      catalog['models']['SABGOM'].getObs(
-         $('#vars .active').text()
-        ,$('#years .active').text()
-        ,$('#years .active').text()
-        ,geom.x
-        ,geom.y
-      )
-      ,catalog['models']['SABGOM'].getObs(
-         $('#vars .active').text()
-        ,catalog.years[0]
-        ,catalog.years[catalog.years.length - 1]
-        ,geom.x
-        ,geom.y
-      )
-    ]
-    title = ' from ' + 'SABGOM';
+    reqs = [
+      {
+        url : catalog['models']['SABGOM'].getObs(
+           $('#vars .active').text()
+          ,$('#years .active').text()
+          ,geom.x
+          ,geom.y
+        )
+        ,title : $('#years .active').text() + ' ' + $('#vars .active').text() + ' from SABGOM'
+      }
+      ,{
+        url : catalog['models']['SABGOM'].getObs(
+           $('#vars .active').text()
+          ,false
+          ,geom.x
+          ,geom.y
+          ,'min'
+        )
+        ,title : 'Min ' + $('#vars .active').text() + ' from SABGOM'
+        ,year  : $('#years .active').text()
+      }
+      ,{
+        url : catalog['models']['SABGOM'].getObs(
+           $('#vars .active').text()
+          ,false
+          ,geom.x
+          ,geom.y
+          ,'max'
+        )
+        ,title : 'Max ' + $('#vars .active').text() + ' from SABGOM'
+        ,year  : $('#years .active').text()
+      }
+      ,{
+        url : catalog['models']['SABGOM'].getObs(
+           $('#vars .active').text()
+          ,false
+          ,geom.x
+          ,geom.y
+          ,'avg'
+        )
+        ,title : 'Avg ' + $('#vars .active').text() + ' from SABGOM'
+        ,year  : $('#years .active').text()
+      }
+    ];
   }
 
   plotData = [];
   $.when(
-    $.ajax({
-       url      : urls[0]
-      ,dataType : 'xml'
-      ,title    : $('#vars .active').text() + title
-      ,success  : function(r) {
-        var data = processData($(r),this.url,$('#years .active').text() + ' ' + this.title);
-        data.lines = {show : true,lineWidth : 2};
-        data.color = '#ff0000';
-        plotData.push(data);
-      }
-      ,error    : function(r) {
-      }
-    })
-    ,(function() {
-      // CHANGEME
-      if (/clim_.*_avg_surface/.test(urls[1])) {
-        return $.ajax({
-           url      : urls[1]
+    (function() {
+      var a = [];
+      for (var i = 0; i < reqs.length; i++) {
+        a.push($.ajax({
+           url      : reqs[i].url
           ,dataType : 'xml'
-          ,title    : $('#vars .active').text() + title
+          ,title    : reqs[i].title
+          ,year     : reqs[i].year
           ,success  : function(r) {
-            var d = {};
-            var feb29 = new Date(2000,1,29).getDOY();
-            var graphLeap = new Date($('#years .active').text(),1,29).getMonth() == 1;
-            var data = processData($(r),this.url,this.title);
-            _.each(data.data,function(o) {
-              var date = new Date(o[0].getTime() + o[0].getTimezoneOffset() * 60 * 1000);
-              var y = date.format('yyyy');
-              var k = date.getDOY();
-              var thisLeap = new Date(date.getFullYear(),1,29).getMonth() == 1;
-              if (k >= feb29) {
-                if (graphLeap && !thisLeap) {
-                  k++;
-                }
-                else if (!graphLeap && thisLeap) {
-                  k--;
-                }
-              }
-              if (!d[k]) {
-                d[k] = {};
-              }
-              if (!d[k][y]) {
-                d[k][y] = [];
-              }
-              d[k][y].push(Number(o[1]));
-            });
-            var dMin = [];
-            var dMax = [];
-            var dAvg = [];
-            _.each(d,function(v,k) {
-              var date = new Date($('#years .active').text());
-              date = new Date(date.getTime() + Number(k) * 3600000 * 24);
-              dMin.push([date,_.min(_.values(_.flatten(v)))]);
-              dMax.push([date,_.max(_.values(_.flatten(v)))]); 
-              dAvg.push([date,(dMax[dMax.length - 1][1] + dMin[dMin.length - 1][1]) / 2]);
-            });
-            var label = 'Average ' + $(data.label.replace(/^&nbsp;/,'')).text();
-            label = $(data.label.replace(/^&nbsp;/,'')).text(label);
-            plotData.push({
-               lines       : {show : true,fill : true,lineWidth : 0}
-              ,data        : _.sortBy(dMax,function(o){return o[0].getTime()})
-              ,label       : false
-              ,fillBetween : 'min'
-              ,color       : "#ffff00"
-            });
-            plotData.push({
-               id    : 'min'
-              ,lines : {show : false}
-              ,data  : _.sortBy(dMin,function(o){return o[0].getTime()})
-              ,label : false
-            });
-            plotData.push({
-               label  : '&nbsp;' + label.prop('outerHTML')
-              ,data   : _.sortBy(dAvg,function(o){return o[0].getTime()})
-              ,dashes : {show : true,lineWidth : 2,dashLength : [6,2]}
-              ,points : {show : true,radius : 0}
-              ,color  : "rgba(0,0,255,0.5)"
-            });
-            plotData.push({
-               id    : 'min'
-              ,lines : {show : false}
-              ,data  : _.sortBy(dMin,function(o){return o[0].getTime()})
-              ,label : false
-            });
-            // CHANGEME
-            plotData.push(plotData.shift());
+            var data = processData($(r),this.url,this.title,this.year);
+            var label = false;
+            plotData.push(data);
             plot();
           }
-          ,error    : function(r) {
-          }
-        });
+        }));
       }
-      else {
-        return false;
-      }
+      return a;
     })()
   ).done(function() {
-    plot();
   });
 }
 
-function processData($xml,url,title) {
+function processData($xml,url,title,year) {
   var d = {data  : []};
   var ncss = $xml.find('point');
   if (ncss.length > 0) { // NetcdfSubset response
     ncss.each(function() {
       var point = $(this);
+      var t = point.find('[name=date]').text();
+      // undo fake dates for stats
+      if (!_.isUndefined(year)) {
+        t = year + t.substr(4);
+      }
       d.data.push([
-         isoDateToDate(point.find('[name=date]').text())
+         isoDateToDate(t)
         ,point.find('[name=temp]').text()
       ]);
       d.label = '&nbsp;<a target=_blank href="' + url + '">' + title + ' (' + point.find('[name=temp]').attr('units') + ')' + '</a>';
@@ -443,7 +392,7 @@ function processData($xml,url,title) {
         // only take the 1st value for each time
         var t = isoDateToDate(a[0]).getTime();
         if (!_.find(d.data,function(o){return o[0] == t}) && nil.indexOf(a[1]) < 0) {
-          d.data.push([t,a[1]]);
+          d.data.push([new Date(t),a[1]]);
         }
       }
     });
