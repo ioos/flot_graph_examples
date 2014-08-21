@@ -225,33 +225,42 @@ function init() {
 }
 
 function plot() {
-  if (spinner) {
-    spinner.stop();
-    spinner = null;
-  }
-  var plot = $.plot(
-     $('#time-series-graph')
-    ,plotData
-    ,{
-       xaxis     : {mode  : "time"}
-      ,crosshair : {mode  : 'x'   }
-      ,grid      : {
-         backgroundColor : {colors : ['#fff','#C3DFE5']}
-        ,borderWidth     : 1
-        ,borderColor     : '#A6D1DB'
-        ,hoverable       : true
+  if (plotData.length == 4) {
+    var minData = _.findWhere(plotData,{id : 'min'});
+    minData.fillBetween = 'max';
+    minData.lines       = {show : true,fill : true,lineWidth : 0,fillColor : "rgba(255,255,204,0.95)"};
+
+    var maxData = _.findWhere(plotData,{id : 'max'});
+    maxData.lines  = {show : true,lineWidth : 0};
+
+    var stackOrder = _.invert(['max','min','avg','obs']);
+    plotData = _.sortBy(plotData,function(o){return stackOrder[o.id]});
+    $.plot(
+       $('#time-series-graph')
+      ,plotData
+      ,{
+         xaxis     : {mode  : "time"}
+        ,crosshair : {mode  : 'x'   }
+        ,grid      : {
+           backgroundColor : {colors : ['#fff','#C3DFE5']}
+          ,borderWidth     : 1
+          ,borderColor     : '#A6D1DB'
+          ,hoverable       : true
+        }
+        ,zoom      : {interactive : true}
+        ,pan       : {interactive : true}
+        ,legend    : {
+           backgroundOpacity : 0.3
+          ,labelFormatter: function(label,series) {
+            return /min|max/.test(series.id) ? null : label;
+          }
+        }
       }
-      ,zoom      : {interactive : true}
-      ,pan       : {interactive : true}
-      ,legend    : {backgroundOpacity : 0.3}
-    }
-  );
+    );
+  }
 }
 
-function query() {
-  if (spinner) {
-    return;
-  }
+function showSpinner() {
   // from http://fgnass.github.io/spin.js/
   var opts = {
     lines: 17, // The number of lines to draw
@@ -272,6 +281,17 @@ function query() {
     left: '50%' // Left position relative to parent
   };
   spinner = new Spinner(opts).spin(document.getElementById('time-series-graph'));
+}
+
+function hideSpinner() {
+  if (spinner) {
+    spinner.stop();
+    spinner = null;
+  }
+}
+
+function query() {
+  showSpinner();
 
   // Find the 1st hit in the catalog that is closest to the query point.
   var queryPt = lyrQuery.features[0].geometry;
@@ -303,6 +323,7 @@ function query() {
           ,geom.y
         )
         ,title : $('#years .active').text() + ' ' + $('#vars .active').text() + ' from SABGOM'
+        ,id    : 'obs'
       }
       ,{
         url : catalog['models']['SABGOM'].getObs(
@@ -312,8 +333,9 @@ function query() {
           ,geom.y
           ,'min'
         )
-        ,title : 'Min ' + $('#vars .active').text() + ' from SABGOM'
+        ,title : 'Minimum ' + $('#vars .active').text() + ' from SABGOM'
         ,year  : $('#years .active').text()
+        ,id    : 'min'
       }
       ,{
         url : catalog['models']['SABGOM'].getObs(
@@ -323,8 +345,9 @@ function query() {
           ,geom.y
           ,'max'
         )
-        ,title : 'Max ' + $('#vars .active').text() + ' from SABGOM'
+        ,title : 'Maximum ' + $('#vars .active').text() + ' from SABGOM'
         ,year  : $('#years .active').text()
+        ,id    : 'max'
       }
       ,{
         url : catalog['models']['SABGOM'].getObs(
@@ -334,8 +357,9 @@ function query() {
           ,geom.y
           ,'avg'
         )
-        ,title : 'Avg ' + $('#vars .active').text() + ' from SABGOM'
+        ,title : 'Average ' + $('#vars .active').text() + ' from SABGOM'
         ,year  : $('#years .active').text()
+        ,id    : 'avg'
       }
     ];
   }
@@ -350,9 +374,10 @@ function query() {
           ,dataType : 'xml'
           ,title    : reqs[i].title
           ,year     : reqs[i].year
+          ,id       : reqs[i].id
           ,success  : function(r) {
             var data = processData($(r),this.url,this.title,this.year);
-            var label = false;
+            data.id = this.id;
             plotData.push(data);
             plot();
           }
@@ -360,7 +385,7 @@ function query() {
       }
       return a;
     })()
-  ).done(function() {
+  ).done(function(a,b,c,d) {
   });
 }
 
