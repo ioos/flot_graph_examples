@@ -18,7 +18,7 @@ function init() {
       var y = item.datapoint[1];
       if (prevPoint != item.dataIndex) {
         $('#tooltip').remove();
-        var a = item.series.label.match(/(\([^\)]*\))<\/a>/);
+        var a = item.series.label ? item.series.label.match(/(\([^\)]*\))<\/a>/) : false;
         var u = '';
         if (a && a.length == 2) {
           var b = a.pop();
@@ -27,7 +27,7 @@ function init() {
         showToolTip(
            item.pageX
           ,item.pageY
-          ,new Date(x).format('UTC:yyyy-mm-dd HH:00"Z"') + ' : ' + (Math.round(y * 100) / 100) + ' ' + u);
+          ,new Date(x).format('UTC:mmm dd, yyyy') + ' : ' + (Math.round(y * 100) / 100) + ' ' + u);
       }
       prevPoint = item.dataIndex;
     }
@@ -324,7 +324,10 @@ function query() {
       ,dataType : 'xml'
       ,title    : $('#vars .active').text() + title
       ,success  : function(r) {
-        plotData.push(processData($(r),this.url,this.title));
+        var data = processData($(r),this.url,$('#years .active').text() + ' ' + this.title);
+        data.lines = {show : true,lineWidth : 1};
+        data.color = '#ff0000';
+        plotData.push(data);
       }
       ,error    : function(r) {
       }
@@ -338,27 +341,70 @@ function query() {
           ,title    : $('#vars .active').text() + title
           ,success  : function(r) {
             var d = {};
-            _.each(processData($(r),this.url,this.title).data,function(o) {
-              var y = o[0].format('UTC:yyyy');
-              var m = o[0].format('UTC:mm');
-              if (!d[m]) {
-                d[m] = {};
+            var feb29 = new Date(2000,1,29).getDOY();
+            var graphLeap = new Date($('#years .active').text(),1,29).getMonth() == 1;
+            var data = processData($(r),this.url,this.title);
+            _.each(data.data,function(o) {
+              var date = new Date(o[0].getTime() + o[0].getTimezoneOffset() * 60 * 1000);
+              var y = date.format('yyyy');
+              var k = date.getDOY();
+              var thisLeap = new Date(date.getFullYear(),1,29).getMonth() == 1;
+              if (k >= feb29) {
+                if (graphLeap && !thisLeap) {
+                  k++;
+                }
+                else if (!graphLeap && thisLeap) {
+                  k--;
+                }
               }
-              if (!d[m][y]) {
-                d[m][y] = [];
+              if (!d[k]) {
+                d[k] = {};
               }
-              d[m][y] = Number(o[1]);
+              if (!d[k][y]) {
+                d[k][y] = [];
+              }
+              d[k][y].push(Number(o[1]));
             });
             var dMin = [];
             var dMax = [];
+            var dAvg = [];
             _.each(d,function(v,k) {
-              dMin.push([new Date($('#years .active').text(),Number(k) - 1),_.min(_.values(v))]);
-              dMax.push([new Date($('#years .active').text(),Number(k) - 1),_.max(_.values(v))]); 
+              var date = new Date($('#years .active').text());
+              date = new Date(date.getTime() + Number(k) * 3600000 * 24);
+              dMin.push([date,_.min(_.values(_.flatten(v)))]);
+              dMax.push([date,_.max(_.values(_.flatten(v)))]); 
+              dAvg.push([date,(dMax[dMax.length - 1][1] + dMin[dMin.length - 1][1]) / 2]);
             });
-            plotData.unshift({id : 'min',data : _.sortBy(dMin,function(o){return o[0].getTime()})});
-            plotData.unshift({lines : {show : true,fill : true},id : 'max',fillBetween : 'min',data : _.sortBy(dMax,function(o){return o[0].getTime()})});
+            var label = 'Average ' + $(data.label.replace(/^&nbsp;/,'')).text();
+            label = $(data.label.replace(/^&nbsp;/,'')).text(label);
+            plotData.push({
+               lines       : {show : true,fill : true,lineWidth : 0}
+              ,data        : _.sortBy(dMax,function(o){return o[0].getTime()})
+              ,label       : false
+              ,fillBetween : 'min'
+            });
+            plotData.push({
+               id    : 'min'
+              ,lines : {show : false}
+              ,data  : _.sortBy(dMin,function(o){return o[0].getTime()})
+              ,label : false
+            });
+            plotData.push({
+               label  : '&nbsp;' + label.prop('outerHTML')
+              ,data   : _.sortBy(dAvg,function(o){return o[0].getTime()})
+              ,dashes : {show : true,lineWidth : 1,dashLength : 2}
+              ,points : {show : true,radius : 0}
+              ,color  : '#0000ff'
+            });
+            plotData.push({
+               id    : 'min'
+              ,lines : {show : false}
+              ,data  : _.sortBy(dMin,function(o){return o[0].getTime()})
+              ,label : false
+            });
+            // CHANGEME
+            plotData.push(plotData.shift());
             plot();
-            console.dir([d,dMin,dMax]);
           }
           ,error    : function(r) {
           }
@@ -437,6 +483,11 @@ function isoDateToDate(s) {
   else {
     return false;
   }
+}
+
+Date.prototype.getDOY = function() {
+  var onejan = new Date(this.getFullYear(),0,1);
+  return Math.ceil((this - onejan) / 86400000);
 }
 
 function resize() {
