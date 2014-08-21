@@ -325,7 +325,7 @@ function query() {
       ,title    : $('#vars .active').text() + title
       ,success  : function(r) {
         var data = processData($(r),this.url,$('#years .active').text() + ' ' + this.title);
-        data.lines = {show : true,lineWidth : 1};
+        data.lines = {show : true,lineWidth : 2};
         data.color = '#ff0000';
         plotData.push(data);
       }
@@ -392,9 +392,9 @@ function query() {
             plotData.push({
                label  : '&nbsp;' + label.prop('outerHTML')
               ,data   : _.sortBy(dAvg,function(o){return o[0].getTime()})
-              ,dashes : {show : true,lineWidth : 1,dashLength : 2}
+              ,dashes : {show : true,lineWidth : 2,dashLength : [6,2]}
               ,points : {show : true,radius : 0}
-              ,color  : '#0000ff'
+              ,color  : "rgba(0,0,255,0.5)"
             });
             plotData.push({
                id    : 'min'
