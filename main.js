@@ -221,7 +221,7 @@ function init() {
   lyrQuery.addFeatures([f.clone()]);
   map.setCenter([f.geometry.x,f.geometry.y],5);
 
-  // query();
+  query();
 }
 
 function plot() {
