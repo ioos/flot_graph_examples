@@ -27,7 +27,7 @@ function init() {
         showToolTip(
            item.pageX
           ,item.pageY
-          ,new Date(x).format('UTC:mmm dd, yyyy') + ' : ' + (Math.round(y * 100) / 100) + ' ' + u);
+          ,new Date(x).format('UTC:mmm dd, yyyy HH:00') + ' : ' + (Math.round(y * 100) / 100) + ' ' + u);
       }
       prevPoint = item.dataIndex;
     }
@@ -249,7 +249,7 @@ function plot() {
     plotData = _.sortBy(plotData,function(o){return stackOrder[o.id]});
   }
 
-  if (plotData.length == 0 || plotData.length == 4 || (plotData.length == 1 && plotData[0].id == 'obs')) {
+  if (plotData.length == 0 || plotData.length == 4) {
     $.plot(
        $('#time-series-graph')
       ,plotData
@@ -271,7 +271,7 @@ function plot() {
           }
         }
         // repeat 1st color to get outer edges of filled area the same color
-        ,colors : plotData.length == 1 ? ['#cb4b4b'] : ['rgba(237,194,64,0.50)','rgba(237,194,64,0.50)',"#afd8f8","#cb4b4b","#4da74d","#9440ed"]
+        ,colors : ['rgba(237,194,64,0.50)','rgba(237,194,64,0.50)',"#afd8f8","#cb4b4b","#4da74d","#9440ed"]
       }
     ); 
     hideSpinner();
@@ -330,9 +330,10 @@ function query() {
           ,catalog.years[0]
           ,catalog.years[catalog.length - 1]
         ) 
-        ,title : $('#years .active').text() + ' ' + $('#vars .active').text() + ' from ' + siteQuery.attributes.name
+        ,title : $('#vars .active').text() + ' from ' + siteQuery.attributes.name
         ,id : 'obs'
         ,postProcess : true
+        ,year : $('#years .active').text()
       }
     ];
   }
@@ -402,20 +403,20 @@ function query() {
       var a = [];
       for (var i = 0; i < reqs.length; i++) {
         a.push($.ajax({
-           url      : reqs[i].getObs.u
-          ,v        : reqs[i].getObs.v
-          ,dataType : 'xml'
-          ,title    : reqs[i].title
-          ,year     : reqs[i].year
-          ,id       : reqs[i].id
+           url         : reqs[i].getObs.u
+          ,v           : reqs[i].getObs.v
+          ,dataType    : 'xml'
+          ,title       : reqs[i].title
+          ,year        : reqs[i].year
+          ,id          : reqs[i].id
           ,postProcess : reqs[i].postProcess
           ,success     : function(r) {
             var data = processData($(r),this.url,this.title,this.year,this.v);
-            data.id = this.id;
+            data[0].id = this.id;
             if (this.postProcess) {
-              data = postProcessData(data);
+              data = postProcessData(data[0]);
             }
-            plotData.push(data);
+            plotData = plotData.concat(data);
             plot();
           }
         }));
@@ -427,42 +428,96 @@ function query() {
 }
 
 function postProcessData(d) {
+console.dir(d);
+  // filter out any Feb 29s
+  d.data = _.filter(d.data,function(o) {
+    return o[0].format('mmdd') != '0229';
+  });
+  d.label = '&nbsp;<a target=_blank href=\'' + d.url + '\'>' + d.year + ' ' + d.title + ' (' + d.uom + ')' + '</a>';
+
   for (var i = 0; i < d.data.length; i++) {
     d.data[i][1] = Number(d.data[i][1]);
   }
 
-  var valuesByDay = _.groupBy(d.data,function(o) {
-    return new Date(o[0].getFullYear(),o[0].getMonth(),o[0].getDay());
+  // get everything in terms of a daily average
+  var vals = _.groupBy(d.data,function(o) {
+    return o[0].format('yyyy-mm-dd');
   });
-
   var dailyAverages = [];
-  for (o in valuesByDay) {
-    // pair the 1st date w/ the average for that day
+  for (o in vals) {
     // you could do some QA/QC here to count # of obs
     dailyAverages.push([
-       valuesByDay[o][0][0]
-      ,math.mean(_.map(valuesByDay[o],function(o){return o[1]}))
+       new Date(vals[o][0][0].getFullYear(),vals[o][0][0].getMonth(),vals[o][0][0].getDate())
+      ,math.mean(_.map(vals[o],function(o){return o[1]}))
     ]);
   }
 
-  var d0 = new Date($('#years .active').text(),0,1,0,0);
-  d0 = new Date(d0.getTime() - d0.getTimezoneOffset() * 60 * 1000);
-  var d1 = new Date($('#years .active').text(),11,31,23,59);
-  d1 = new Date(d1.getTime() - d1.getTimezoneOffset() * 60 * 1000);
-  var dThisYear = _.filter(dailyAverages,function(o) {
+  // the in-situ data for the target year only
+  var d0 = new Date(d.year,0,1,0,0);
+  var d1 = new Date(d.year,11,31,23,59);
+  d.data = _.filter(dailyAverages,function(o) {
     return d0 <= o[0] && o[0] <= d1;
   });
-  d.data = dThisYear;
 
-  return d;
+  // start pulling out stats which means grouping data by mm/dd
+  vals = _.groupBy(dailyAverages,function(o) {
+    return d.year + '-' + o[0].format('mm-dd');
+  });
+
+  var dAvg = {
+     id    : 'avg'
+    ,label : '&nbsp;<a target=_blank href=\'' + d.url + '\'>Average ' + d.title + ' (' + d.uom + ')' + '</a>'
+    ,data  : []
+  };
+  for (o in vals) {
+    // you could do some QA/QC here to count # of obs
+    dAvg.data.push([
+       vals[o][0][0]
+      ,math.mean(_.map(vals[o],function(o){return o[1]}))
+    ]);
+  }
+
+  var dMin = {
+     id    : 'min'
+    ,label : 'Minimum'
+    ,data  : []
+  };
+  for (o in vals) {
+    // you could do some QA/QC here to count # of obs
+    dMin.data.push([
+       vals[o][0][0]
+      ,math.min(_.map(vals[o],function(o){return o[1]}))
+    ]);
+  }
+
+  var dMax = {
+     id    : 'max'
+    ,label : 'Maximum'
+    ,data  : []
+  };
+  for (o in vals) {
+    // you could do some QA/QC here to count # of obs
+    dMax.data.push([
+       vals[o][0][0]
+      ,math.max(_.map(vals[o],function(o){return o[1]}))
+    ]);
+  }
+
+  return [d,dAvg,dMin,dMax];
 }
 
 function processData($xml,url,title,year,v) {
-  var d = {data  : []};
+  var d = {
+     url   : url
+    ,title : title
+    ,year  : year
+    ,data  : []
+  };
   var ncss = $xml.find('point');
   if (ncss.length > 0) { // NetcdfSubset response
     ncss.each(function() {
       var point = $(this);
+      d.uom = point.find('[name=temp]').attr('units');
       var t = point.find('[name=date]').text();
       // undo fake dates for stats
       if (!_.isUndefined(year)) {
@@ -472,13 +527,13 @@ function processData($xml,url,title,year,v) {
          isoDateToDate(t)
         ,point.find('[name=' + v + ']').text()
       ]);
-      d.label = '&nbsp;<a target=_blank href=\'' + url + '\'>' + title + ' (' + point.find('[name=temp]').attr('units') + ')' + '</a>';
+      d.label = '&nbsp;<a target=_blank href=\'' + url + '\'>' + title + ' (' + d.uom + ')' + '</a>';
     });
   }
   else { // ncSOS response
+    d.uom   = $xml.find('uom[code]').attr('code');
     var nil = $xml.find('nilValue').text();
-    // var nil = ["-999.9","-999.0"]; // CHANGEME
-    d.label = '&nbsp;<a target=_blank href=\'' + url + '\'>' + title + ' (' + $xml.find('uom[code]').attr('code') + ')' + '</a>';
+    d.label = '&nbsp;<a target=_blank href=\'' + url + '\'>' + title + ' (' + d.uom + ')' + '</a>';
     _.each($xml.find('values').text().split(" "),function(o) {
       var a = o.split(',');
       if ((a.length == 2) && $.isNumeric(a[1])) {
@@ -486,7 +541,7 @@ function processData($xml,url,title,year,v) {
       }
     });
   }
-  return d;
+  return [d];
 }
 
 function showToolTip(x,y,contents) {
