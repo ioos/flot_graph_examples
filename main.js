@@ -438,13 +438,13 @@ function processData($xml,url,title,year,v) {
          isoDateToDate(t)
         ,point.find('[name=' + v + ']').text()
       ]);
-      d.label = '&nbsp;<a target=_blank href="' + url + '">' + title + ' (' + point.find('[name=temp]').attr('units') + ')' + '</a>';
+      d.label = '&nbsp;<a target=_blank href=\'' + url + '\'>' + title + ' (' + point.find('[name=temp]').attr('units') + ')' + '</a>';
     });
   }
   else { // ncSOS response
     var nil = $xml.find('nilValue').text();
     // var nil = ["-999.9","-999.0"]; // CHANGEME
-    d.label = '&nbsp;<a target=_blank href="' + url + '">' + title + ' (' + $xml.find('uom[code]').attr('code') + ')' + '</a>';
+    d.label = '&nbsp;<a target=_blank href=\'' + url + '\'>' + title + ' (' + $xml.find('uom[code]').attr('code') + ')' + '</a>';
     _.each($xml.find('values').text().split(" "),function(o) {
       var a = o.split(',');
       if ((a.length == 2) && $.isNumeric(a[1])) {
