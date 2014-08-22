@@ -226,37 +226,45 @@ function init() {
 
 function plot() {
   if (plotData.length == 4) {
+    var obsData = _.findWhere(plotData,{id : 'obs'});
+    obsData.lines = {show : true,lineWidth : 3};
+
     var minData = _.findWhere(plotData,{id : 'min'});
     minData.fillBetween = 'max';
-    minData.lines       = {show : true,fill : true,lineWidth : 0,fillColor : "rgba(255,255,204,0.95)"};
+    minData.lines = {show : true,lineWidth : 1,fill : true,fillColor : 'rgba(237,194,64,0.20)'};
 
     var maxData = _.findWhere(plotData,{id : 'max'});
-    maxData.lines  = {show : true,lineWidth : 0};
+    maxData.lines  = {show : true,lineWidth : 1};
 
     var stackOrder = _.invert(['max','min','avg','obs']);
     plotData = _.sortBy(plotData,function(o){return stackOrder[o.id]});
-    $.plot(
-       $('#time-series-graph')
-      ,plotData
-      ,{
-         xaxis     : {mode  : "time"}
-        ,crosshair : {mode  : 'x'   }
-        ,grid      : {
-           backgroundColor : {colors : ['#fff','#C3DFE5']}
-          ,borderWidth     : 1
-          ,borderColor     : '#A6D1DB'
-          ,hoverable       : true
-        }
-        ,zoom      : {interactive : true}
-        ,pan       : {interactive : true}
-        ,legend    : {
-           backgroundOpacity : 0.3
-          ,labelFormatter: function(label,series) {
-            return /min|max/.test(series.id) ? null : label;
-          }
+  }
+  $.plot(
+     $('#time-series-graph')
+    ,plotData
+    ,{
+       xaxis     : {mode  : "time"}
+      ,crosshair : {mode  : 'x'   }
+      ,grid      : {
+         backgroundColor : {colors : ['#fff','#C3DFE5']}
+        ,borderWidth     : 1
+        ,borderColor     : '#A6D1DB'
+        ,hoverable       : true
+      }
+      ,zoom      : {interactive : true}
+      ,pan       : {interactive : true}
+      ,legend    : {
+         backgroundOpacity : 0.3
+        ,labelFormatter: function(label,series) {
+          return /min|max/.test(series.id) ? null : label;
         }
       }
-    );
+      // repeat 1st color to get outer edges of filled area the same color
+      ,colors : ['rgba(237,194,64,0.50)','rgba(237,194,64,0.50)',"#afd8f8","#cb4b4b","#4da74d","#9440ed"]
+    }
+  );
+  if (plotData.length == 4) {
+    hideSpinner();
   }
 }
 
@@ -280,7 +288,7 @@ function showSpinner() {
     top: '50%', // Top position relative to parent
     left: '50%' // Left position relative to parent
   };
-  spinner = new Spinner(opts).spin(document.getElementById('time-series-graph'));
+  spinner = new Spinner(opts).spin(document.getElementById('spinner'));
 }
 
 function hideSpinner() {
@@ -291,6 +299,9 @@ function hideSpinner() {
 }
 
 function query() {
+  if (spinner) {
+    return;
+  }
   showSpinner();
 
   // Find the 1st hit in the catalog that is closest to the query point.
