@@ -391,9 +391,9 @@ function query() {
 
   var msg = [];
   for (var i = 0; i < reqs.length; i++) {
-    msg.push("<span id='" + reqs[i].id + "'>" + reqs[i].title + '<img src="img/progressDots.gif"></span>');
+    msg.push("<span id='" + reqs[i].id + "'>" + reqs[i].title + '<img src="img/progressDots.gif"><br></span>');
   }
-  $('#messages').html(msg.join('<br>'));
+  $('#messages').html(msg.join(''));
 
   $.when(
     (function() {
