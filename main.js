@@ -27,7 +27,7 @@ function init() {
         showToolTip(
            item.pageX
           ,item.pageY
-          ,new Date(x).format('UTC:mmm dd, yyyy HH:00') + ' : ' + (Math.round(y * 100) / 100) + ' ' + u);
+          ,new Date(x).format('UTC:mmm dd, yyyy') + ' : ' + (Math.round(y * 100) / 100) + ' ' + u);
       }
       prevPoint = item.dataIndex;
     }
@@ -534,7 +534,7 @@ function processData($xml,url,title,year,v) {
   }
   else { // ncSOS response
     d.uom   = $xml.find('uom[code]').attr('code');
-    var nil = ["-999.9","-999.0"]; // [$xml.find('nilValue').text()];
+    var nil = [$xml.find('nilValue').text()];
     d.label = '&nbsp;<a target=_blank href=\'' + url + '\'>' + title + ' (' + d.uom + ')' + '</a>';
     _.each($xml.find('values').text().split(" "),function(o) {
       var a = o.split(',');

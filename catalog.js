@@ -10,7 +10,7 @@ var catalog = {
              'Temperature' : 'water_temperature'
             ,'Salinity'    : 'salinity'
           };
-          return {u : 'get.php?http://tds.secoora.org/thredds/sos/carocoops.cap2.buoy.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all' + '&eventTime=' + year0 + '-01-01T00:00:00Z/' + year1 + '-12-31T23:59:59Z' + '&observedProperty=' + vh[v]};
+          return {u : 'get.php?http://tds.secoora.org/thredds/sos/carocoops.cap2.buoy_archive.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all' + '&eventTime=' + year0 + '-01-01T00:00:00Z/' + year1 + '-12-31T23:59:59Z' + '&observedProperty=' + vh[v]};
         }
       }
       ,'FRP2' : {
@@ -20,7 +20,7 @@ var catalog = {
              'Temperature' : 'water_temperature'
             ,'Salinity'    : 'salinity'
           };
-          return {u : 'get.php?http://tds.secoora.org/thredds/sos/carocoops.frp2.buoy.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all' + '&eventTime=' + year0 + '-01-01T00:00:00Z/' + year1 + '-12-31T23:59:59Z' + '&observedProperty=' + vh[v]};
+          return {u : 'get.php?http://tds.secoora.org/thredds/sos/carocoops.frp2.buoy_archive.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all' + '&eventTime=' + year0 + '-01-01T00:00:00Z/' + year1 + '-12-31T23:59:59Z' + '&observedProperty=' + vh[v]};
         }
       }
       ,'SUN2' : {
@@ -30,7 +30,7 @@ var catalog = {
              'Temperature' : 'water_temperature'
             ,'Salinity'    : 'salinity'
           };
-          return {u : 'get.php?http://tds.secoora.org/thredds/sos/carocoops.sun2.buoy.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all' + '&eventTime=' + year0 + '-01-01T00:00:00Z/' + year1 + '-12-31T23:59:59Z' + '&observedProperty=' + vh[v]};
+          return {u : 'get.php?http://tds.secoora.org/thredds/sos/carocoops.sun2.buoy_archive.nc?request=GetObservation&service=SOS&version=1.0.0&responseFormat=text/xml;schema%3D"om/1.0.0"&offering=urn:ioos:network:org.secoora:all&procedure=urn:ioos:network:org.secoora:all' + '&eventTime=' + year0 + '-01-01T00:00:00Z/' + year1 + '-12-31T23:59:59Z' + '&observedProperty=' + vh[v]};
         }
       }
     }
