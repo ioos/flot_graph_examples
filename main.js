@@ -327,10 +327,12 @@ function query() {
       {
         getObs : catalog['sites'][siteQuery.attributes.group][siteQuery.attributes.name].getObs(
            $('#vars .active').text()
-          ,$('#years .active').text()
+          ,catalog.years[0]
+          ,catalog.years[catalog.length - 1]
         ) 
         ,title : $('#years .active').text() + ' ' + $('#vars .active').text() + ' from ' + siteQuery.attributes.name
         ,id : 'obs'
+        ,postProcess : true
       }
     ];
   }
@@ -406,14 +408,15 @@ function query() {
           ,title    : reqs[i].title
           ,year     : reqs[i].year
           ,id       : reqs[i].id
-          ,success  : function(r) {
+          ,postProcess : reqs[i].postProcess
+          ,success     : function(r) {
             var data = processData($(r),this.url,this.title,this.year,this.v);
             data.id = this.id;
+            if (this.postProcess) {
+              data = postProcessData(data);
+            }
             plotData.push(data);
             plot();
-            if (reqs.length == 1) {
-              hideSpinner();
-            }
           }
         }));
       }
@@ -421,6 +424,37 @@ function query() {
     })()
   ).done(function() {
   });
+}
+
+function postProcessData(d) {
+  for (var i = 0; i < d.data.length; i++) {
+    d.data[i][1] = Number(d.data[i][1]);
+  }
+
+  var valuesByDay = _.groupBy(d.data,function(o) {
+    return new Date(o[0].getFullYear(),o[0].getMonth(),o[0].getDay());
+  });
+
+  var dailyAverages = [];
+  for (o in valuesByDay) {
+    // pair the 1st date w/ the average for that day
+    // you could do some QA/QC here to count # of obs
+    dailyAverages.push([
+       valuesByDay[o][0][0]
+      ,math.mean(_.map(valuesByDay[o],function(o){return o[1]}))
+    ]);
+  }
+
+  var d0 = new Date($('#years .active').text(),0,1,0,0);
+  d0 = new Date(d0.getTime() - d0.getTimezoneOffset() * 60 * 1000);
+  var d1 = new Date($('#years .active').text(),11,31,23,59);
+  d1 = new Date(d1.getTime() - d1.getTimezoneOffset() * 60 * 1000);
+  var dThisYear = _.filter(dailyAverages,function(o) {
+    return d0 <= o[0] && o[0] <= d1;
+  });
+  d.data = dThisYear;
+
+  return d;
 }
 
 function processData($xml,url,title,year,v) {
