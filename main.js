@@ -221,7 +221,7 @@ function init() {
   lyrQuery.addFeatures([f.clone()]);
   map.setCenter([f.geometry.x,f.geometry.y],5);
 
-  // query();
+  query();
 }
 
 function plot() {
@@ -260,7 +260,7 @@ function plot() {
         }
       }
       // repeat 1st color to get outer edges of filled area the same color
-      ,colors : ['rgba(237,194,64,0.50)','rgba(237,194,64,0.50)',"#afd8f8","#cb4b4b","#4da74d","#9440ed"]
+      ,colors : plotData.length == 1 ? ['#cb4b4b'] : ['rgba(237,194,64,0.50)','rgba(237,194,64,0.50)',"#afd8f8","#cb4b4b","#4da74d","#9440ed"]
     }
   );
   if (plotData.length == 4) {
@@ -391,6 +391,9 @@ function query() {
             data.id = this.id;
             plotData.push(data);
             plot();
+            if (reqs.length == 1) {
+              hideSpinner();
+            }
           }
         }));
       }
@@ -419,17 +422,13 @@ function processData($xml,url,title,year) {
     });
   }
   else { // ncSOS response
-    // var nil = $xml.find('nilValue').text();
-    var nil = ["-999.9","-999.0"]; // CHANGEME
+    var nil = $xml.find('nilValue').text();
+    // var nil = ["-999.9","-999.0"]; // CHANGEME
     d.label = '&nbsp;<a target=_blank href="' + url + '">' + title + ' (' + $xml.find('uom[code]').attr('code') + ')' + '</a>';
     _.each($xml.find('values').text().split(" "),function(o) {
       var a = o.split(',');
-      if ((a.length == 2 || a.length == 3) && $.isNumeric(a[1])) {
-        // only take the 1st value for each time
-        var t = isoDateToDate(a[0]).getTime();
-        if (!_.find(d.data,function(o){return o[0] == t}) && nil.indexOf(a[1]) < 0) {
-          d.data.push([new Date(t),a[1]]);
-        }
+      if ((a.length == 2) && $.isNumeric(a[1])) {
+        d.data.push([isoDateToDate(a[0]),a[1]]);
       }
     });
   }
