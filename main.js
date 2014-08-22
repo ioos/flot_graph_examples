@@ -225,45 +225,55 @@ function init() {
 }
 
 function plot() {
+  _.each(_.pluck(plotData,'id'),function(o) {
+    $('#' + o).remove();
+  });
   if (plotData.length == 4) {
     var obsData = _.findWhere(plotData,{id : 'obs'});
-    obsData.lines = {show : true,lineWidth : 3};
+    if (obsData) {
+      obsData.lines = {show : true,lineWidth : 3}; 
+    }
 
     var minData = _.findWhere(plotData,{id : 'min'});
-    minData.fillBetween = 'max';
-    minData.lines = {show : true,lineWidth : 1,fill : true,fillColor : 'rgba(237,194,64,0.20)'};
+    if (minData) {
+      minData.fillBetween = 'max';
+      minData.lines = {show : true,lineWidth : 1,fill : true,fillColor : 'rgba(237,194,64,0.20)'};
+    }
 
     var maxData = _.findWhere(plotData,{id : 'max'});
-    maxData.lines  = {show : true,lineWidth : 1};
+    if (maxData) {
+      maxData.lines  = {show : true,lineWidth : 1};
+    }
 
     var stackOrder = _.invert(['max','min','avg','obs']);
     plotData = _.sortBy(plotData,function(o){return stackOrder[o.id]});
   }
-  $.plot(
-     $('#time-series-graph')
-    ,plotData
-    ,{
-       xaxis     : {mode  : "time"}
-      ,crosshair : {mode  : 'x'   }
-      ,grid      : {
-         backgroundColor : {colors : ['#fff','#C3DFE5']}
-        ,borderWidth     : 1
-        ,borderColor     : '#A6D1DB'
-        ,hoverable       : true
-      }
-      ,zoom      : {interactive : true}
-      ,pan       : {interactive : true}
-      ,legend    : {
-         backgroundOpacity : 0.3
-        ,labelFormatter: function(label,series) {
-          return /min|max/.test(series.id) ? null : label;
+
+  if (plotData.length == 0 || plotData.length == 4 || (plotData.length == 1 && plotData[0].id == 'obs')) {
+    $.plot(
+       $('#time-series-graph')
+      ,plotData
+      ,{
+         xaxis     : {mode  : "time"}
+        ,crosshair : {mode  : 'x'   }
+        ,grid      : {
+           backgroundColor : {colors : ['#fff','#C3DFE5']}
+          ,borderWidth     : 1
+          ,borderColor     : '#A6D1DB'
+          ,hoverable       : true
         }
+        ,zoom      : {interactive : true}
+        ,pan       : {interactive : true}
+        ,legend    : {
+           backgroundOpacity : 0.3
+          ,labelFormatter: function(label,series) {
+            return /min|max/.test(series.id) ? null : label;
+          }
+        }
+        // repeat 1st color to get outer edges of filled area the same color
+        ,colors : plotData.length == 1 ? ['#cb4b4b'] : ['rgba(237,194,64,0.50)','rgba(237,194,64,0.50)',"#afd8f8","#cb4b4b","#4da74d","#9440ed"]
       }
-      // repeat 1st color to get outer edges of filled area the same color
-      ,colors : plotData.length == 1 ? ['#cb4b4b'] : ['rgba(237,194,64,0.50)','rgba(237,194,64,0.50)',"#afd8f8","#cb4b4b","#4da74d","#9440ed"]
-    }
-  );
-  if (plotData.length == 4) {
+    ); 
     hideSpinner();
   }
 }
@@ -320,6 +330,7 @@ function query() {
           ,$('#years .active').text()
         ) 
         ,title : $('#years .active').text() + ' ' + $('#vars .active').text() + ' from ' + siteQuery.attributes.name
+        ,id : 'obs'
       }
     ];
   }
@@ -376,6 +387,14 @@ function query() {
   }
 
   plotData = [];
+  $('#messages').empty();
+
+  var msg = [];
+  for (var i = 0; i < reqs.length; i++) {
+    msg.push("<span id='" + reqs[i].id + "'>" + reqs[i].title + '<img src="img/progressDots.gif"></span>');
+  }
+  $('#messages').html(msg.join('<br>'));
+
   $.when(
     (function() {
       var a = [];
@@ -399,7 +418,7 @@ function query() {
       }
       return a;
     })()
-  ).done(function(a,b,c,d) {
+  ).done(function() {
   });
 }
 
