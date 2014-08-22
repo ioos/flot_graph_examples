@@ -221,7 +221,7 @@ function init() {
   lyrQuery.addFeatures([f.clone()]);
   map.setCenter([f.geometry.x,f.geometry.y],5);
 
-  query();
+  // query();
 }
 
 function plot() {
@@ -565,14 +565,13 @@ function isoDateToDate(s) {
   if (p.length == 2) {
     var ymd = p[0].split('-');
     var hm = p[1].split(':');
-    var d = new Date(
+    return new Date(Date.UTC(
        ymd[0]
       ,ymd[1] - 1
       ,ymd[2]
       ,hm[0]
       ,hm[1]
-    );
-    return new Date(d.getTime() - d.getTimezoneOffset() * 60 * 1000);
+    ));
   }
   else {
     return false;
