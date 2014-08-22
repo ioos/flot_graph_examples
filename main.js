@@ -325,7 +325,7 @@ function query() {
     var geom = siteQuery.geometry.clone().transform(proj3857,proj4326);
     reqs = [
       {
-        url : catalog['sites'][siteQuery.attributes.group][siteQuery.attributes.name].getObs(
+        getObs : catalog['sites'][siteQuery.attributes.group][siteQuery.attributes.name].getObs(
            $('#vars .active').text()
           ,$('#years .active').text()
         ) 
@@ -338,7 +338,7 @@ function query() {
     var geom = queryPt.clone().transform(proj3857,proj4326);
     reqs = [
       {
-        url : catalog['models']['SABGOM'].getObs(
+        getObs : catalog['models']['SABGOM'].getObs(
            $('#vars .active').text()
           ,$('#years .active').text()
           ,geom.x
@@ -348,7 +348,7 @@ function query() {
         ,id    : 'obs'
       }
       ,{
-        url : catalog['models']['SABGOM'].getObs(
+        getObs : catalog['models']['SABGOM'].getObs(
            $('#vars .active').text()
           ,false
           ,geom.x
@@ -360,7 +360,7 @@ function query() {
         ,id    : 'min'
       }
       ,{
-        url : catalog['models']['SABGOM'].getObs(
+        getObs : catalog['models']['SABGOM'].getObs(
            $('#vars .active').text()
           ,false
           ,geom.x
@@ -372,7 +372,7 @@ function query() {
         ,id    : 'max'
       }
       ,{
-        url : catalog['models']['SABGOM'].getObs(
+        getObs : catalog['models']['SABGOM'].getObs(
            $('#vars .active').text()
           ,false
           ,geom.x
@@ -400,13 +400,14 @@ function query() {
       var a = [];
       for (var i = 0; i < reqs.length; i++) {
         a.push($.ajax({
-           url      : reqs[i].url
+           url      : reqs[i].getObs.u
+          ,v        : reqs[i].getObs.v
           ,dataType : 'xml'
           ,title    : reqs[i].title
           ,year     : reqs[i].year
           ,id       : reqs[i].id
           ,success  : function(r) {
-            var data = processData($(r),this.url,this.title,this.year);
+            var data = processData($(r),this.url,this.title,this.year,this.v);
             data.id = this.id;
             plotData.push(data);
             plot();
@@ -422,7 +423,7 @@ function query() {
   });
 }
 
-function processData($xml,url,title,year) {
+function processData($xml,url,title,year,v) {
   var d = {data  : []};
   var ncss = $xml.find('point');
   if (ncss.length > 0) { // NetcdfSubset response
@@ -435,7 +436,7 @@ function processData($xml,url,title,year) {
       }
       d.data.push([
          isoDateToDate(t)
-        ,point.find('[name=temp]').text()
+        ,point.find('[name=' + v + ']').text()
       ]);
       d.label = '&nbsp;<a target=_blank href="' + url + '">' + title + ' (' + point.find('[name=temp]').attr('units') + ')' + '</a>';
     });
