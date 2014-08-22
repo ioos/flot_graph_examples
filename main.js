@@ -328,7 +328,7 @@ function query() {
         getObs : catalog['sites'][siteQuery.attributes.group][siteQuery.attributes.name].getObs(
            $('#vars .active').text()
           ,catalog.years[0]
-          ,catalog.years[catalog.length - 1]
+          ,catalog.years[catalog.years.length - 1]
         ) 
         ,title : $('#vars .active').text() + ' from ' + siteQuery.attributes.name
         ,id : 'obs'
