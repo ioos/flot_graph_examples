@@ -221,7 +221,7 @@ function init() {
   lyrQuery.addFeatures([f.clone()]);
   map.setCenter([f.geometry.x,f.geometry.y],5);
 
-  // query();
+  query();
 }
 
 function plot() {
@@ -428,10 +428,9 @@ function query() {
 }
 
 function postProcessData(d) {
-console.dir(d);
   // filter out any Feb 29s
   d.data = _.filter(d.data,function(o) {
-    return o[0].format('mmdd') != '0229';
+    return o[0].format('UTC:mmdd') != '0229';
   });
   d.label = '&nbsp;<a target=_blank href=\'' + d.url + '\'>' + d.year + ' ' + d.title + ' (' + d.uom + ')' + '</a>';
 
@@ -441,27 +440,27 @@ console.dir(d);
 
   // get everything in terms of a daily average
   var vals = _.groupBy(d.data,function(o) {
-    return o[0].format('yyyy-mm-dd');
+    return o[0].format('UTC:yyyy-mm-dd');
   });
   var dailyAverages = [];
   for (o in vals) {
     // you could do some QA/QC here to count # of obs
     dailyAverages.push([
-       new Date(vals[o][0][0].getFullYear(),vals[o][0][0].getMonth(),vals[o][0][0].getDate())
+       new Date(Date.UTC(vals[o][0][0].getUTCFullYear(),vals[o][0][0].getUTCMonth(),vals[o][0][0].getUTCDate()))
       ,math.mean(_.map(vals[o],function(o){return o[1]}))
     ]);
   }
 
   // the in-situ data for the target year only
-  var d0 = new Date(d.year,0,1,0,0);
-  var d1 = new Date(d.year,11,31,23,59);
+  var d0 = new Date(Date.UTC(d.year,0,1,0,0));
+  var d1 = new Date(Date.UTC(d.year,11,31,23,59));
   d.data = _.filter(dailyAverages,function(o) {
     return d0 <= o[0] && o[0] <= d1;
   });
 
   // start pulling out stats which means grouping data by mm/dd
   vals = _.groupBy(dailyAverages,function(o) {
-    return d.year + '-' + o[0].format('mm-dd');
+    return d.year + '-' + o[0].format('UTC:mm-dd');
   });
 
   var dAvg = {
@@ -472,7 +471,7 @@ console.dir(d);
   for (o in vals) {
     // you could do some QA/QC here to count # of obs
     dAvg.data.push([
-       vals[o][0][0]
+       new Date(Date.UTC(d.year,vals[o][0][0].getUTCMonth(),vals[o][0][0].getUTCDate()))
       ,math.mean(_.map(vals[o],function(o){return o[1]}))
     ]);
   }
@@ -485,7 +484,7 @@ console.dir(d);
   for (o in vals) {
     // you could do some QA/QC here to count # of obs
     dMin.data.push([
-       vals[o][0][0]
+       new Date(Date.UTC(d.year,vals[o][0][0].getUTCMonth(),vals[o][0][0].getUTCDate()))
       ,math.min(_.map(vals[o],function(o){return o[1]}))
     ]);
   }
@@ -498,7 +497,7 @@ console.dir(d);
   for (o in vals) {
     // you could do some QA/QC here to count # of obs
     dMax.data.push([
-       vals[o][0][0]
+       new Date(Date.UTC(d.year,vals[o][0][0].getUTCMonth(),vals[o][0][0].getUTCDate()))
       ,math.max(_.map(vals[o],function(o){return o[1]}))
     ]);
   }
