@@ -18,16 +18,10 @@ function init() {
       var y = item.datapoint[1];
       if (prevPoint != item.dataIndex) {
         $('#tooltip').remove();
-        var a = item.series.label ? item.series.label.match(/(\([^\)]*\))<\/a>/) : false;
-        var u = '';
-        if (a && a.length == 2) {
-          var b = a.pop();
-          u = b.substr(1,b.length - 2);
-        }
         showToolTip(
            item.pageX
           ,item.pageY
-          ,new Date(x).format('UTC:mmm dd, yyyy') + ' : ' + (Math.round(y * 100) / 100) + ' ' + u);
+          ,new Date(x).format('UTC:mmm dd, yyyy') + ' : ' + (Math.round(y * 100) / 100) + ' ' + item.series.uom);
       }
       prevPoint = item.dataIndex;
     }
@@ -473,6 +467,7 @@ function postProcessData(d) {
 
   var dAvg = {
      id    : 'avg'
+    ,uom   : d.uom
     ,label : '&nbsp;<a target=_blank href=\'' + d.url + '\'>Average ' + d.title + ' (' + d.uom + ')' + '</a>'
     ,data  : []
   };
@@ -486,6 +481,7 @@ function postProcessData(d) {
 
   var dMin = {
      id    : 'min'
+    ,uom   : d.uom
     ,label : 'Minimum'
     ,data  : []
   };
@@ -501,6 +497,7 @@ function postProcessData(d) {
 
   var dMax = {
      id    : 'max'
+    ,uom   : d.uom
     ,label : 'Maximum'
     ,data  : []
   };
