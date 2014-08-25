@@ -284,7 +284,7 @@ function plot() {
 function showSpinner() {
   // from http://fgnass.github.io/spin.js/
   var opts = {
-    lines: 17, // The number of lines to draw
+    lines: 18, // The number of lines to draw
     length: 35, // The length of each line
     width: 10, // The line thickness
     radius: 54, // The radius of the inner circle
@@ -579,8 +579,8 @@ function stats(data) {
   });
   return {
      avg : c > 0 ? t / c : null
-    ,min : !_.isUndefined(min) ? min : null
-    ,max : !_.isUndefined(max) ? max : null
+    ,min : !_.isUndefined(min) ? min : [null,null]
+    ,max : !_.isUndefined(max) ? max : [null,null]
   };
 }
 
