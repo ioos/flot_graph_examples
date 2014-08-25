@@ -18,10 +18,19 @@ function init() {
       var y = item.datapoint[1];
       if (prevPoint != item.dataIndex) {
         $('#tooltip').remove();
+        var d = x.format('UTC:mmm dd, yyyy');
+        // display date from stat calcs if avaialble
+        if (item.series.data[item.dataIndex][2]) {
+          d = item.series.data[item.dataIndex][2].format('UTC:mmm dd, yyyy');
+        }
+        // but only show the year if this is the avg line
+        if (item.series.id == 'avg') {
+          d = x.format('UTC:mmm dd');
+        }
         showToolTip(
            item.pageX
           ,item.pageY
-          ,new Date(x).format('UTC:mmm dd, yyyy') + ' : ' + (Math.round(y * 100) / 100) + ' ' + item.series.uom);
+          ,d + ' : ' + (Math.round(y * 100) / 100) + ' ' + item.series.uom);
       }
       prevPoint = item.dataIndex;
     }
