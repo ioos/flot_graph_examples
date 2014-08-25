@@ -442,12 +442,16 @@ function postProcessData(d) {
   var vals = _.groupBy(d.data,function(o) {
     return o[0].format('UTC:yyyy-mm-dd');
   });
+  var sVals = {};
+  for (o in vals) {
+    sVals[o] = stats(vals[o]);
+  }
+
   var dailyAverages = [];
   for (o in vals) {
-    // you could do some QA/QC here to count # of obs
     dailyAverages.push([
        new Date(Date.UTC(vals[o][0][0].getUTCFullYear(),vals[o][0][0].getUTCMonth(),vals[o][0][0].getUTCDate()))
-      ,math.mean(_.map(vals[o],function(o){return o[1]}))
+      ,sVals[o].avg
     ]);
   }
 
@@ -462,6 +466,10 @@ function postProcessData(d) {
   vals = _.groupBy(dailyAverages,function(o) {
     return d.year + '-' + o[0].format('UTC:mm-dd');
   });
+  sVals = {};
+  for (o in vals) {
+    sVals[o] = stats(vals[o]);
+  }
 
   var dAvg = {
      id    : 'avg'
@@ -469,10 +477,9 @@ function postProcessData(d) {
     ,data  : []
   };
   for (o in vals) {
-    // you could do some QA/QC here to count # of obs
     dAvg.data.push([
        new Date(Date.UTC(d.year,vals[o][0][0].getUTCMonth(),vals[o][0][0].getUTCDate()))
-      ,math.mean(_.map(vals[o],function(o){return o[1]}))
+      ,sVals[o].avg
     ]);
   }
   dAvg.data = _.sortBy(dAvg.data,function(o){return o[0].getTime()});
@@ -486,7 +493,8 @@ function postProcessData(d) {
     // you could do some QA/QC here to count # of obs
     dMin.data.push([
        new Date(Date.UTC(d.year,vals[o][0][0].getUTCMonth(),vals[o][0][0].getUTCDate()))
-      ,math.min(_.map(vals[o],function(o){return o[1]}))
+      ,sVals[o].min[1]
+      ,sVals[o].min[0]
     ]);
   }
   dMin.data = _.sortBy(dMin.data,function(o){return o[0].getTime()});
@@ -497,10 +505,10 @@ function postProcessData(d) {
     ,data  : []
   };
   for (o in vals) {
-    // you could do some QA/QC here to count # of obs
     dMax.data.push([
        new Date(Date.UTC(d.year,vals[o][0][0].getUTCMonth(),vals[o][0][0].getUTCDate()))
-      ,math.max(_.map(vals[o],function(o){return o[1]}))
+      ,sVals[o].max[1]
+      ,sVals[o].max[0]
     ]);
   }
   dMax.data = _.sortBy(dMax.data,function(o){return o[0].getTime()});
@@ -544,6 +552,30 @@ function processData($xml,url,title,year,v) {
     });
   }
   return [d];
+}
+
+function stats(data) {
+  var c = 0;
+  var t = 0;
+  var min;
+  var max;
+  _.each(data,function(o) {
+    if ($.isNumeric(o[1])) {
+      t += o[1];
+      if (_.isUndefined(min) || o[1] < min[1]) {
+        min = o;
+      }
+      if (_.isUndefined(max) || o[1] > max[1]) {
+        max = o;
+      }
+      c++; 
+    }
+  });
+  return {
+     avg : c > 0 ? t / c : null
+    ,min : !_.isUndefined(min) ? min : null
+    ,max : !_.isUndefined(max) ? max : null
+  };
 }
 
 function showToolTip(x,y,contents) {
