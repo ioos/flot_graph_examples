@@ -1,3 +1,4 @@
+var prevPoint;
 var plotData = [];
 var lyrQuery;
 var lyrCatalog = new OpenLayers.Layer.Vector();
