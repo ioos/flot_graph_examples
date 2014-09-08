@@ -1,11 +1,15 @@
 var prevPoint;
 var plotData = [];
+var reqs = [];
 var lyrQuery;
 var lyrCatalog = new OpenLayers.Layer.Vector();
 var map;
 var spinner;
 var proj3857 = new OpenLayers.Projection("EPSG:3857");
 var proj4326 = new OpenLayers.Projection("EPSG:4326");
+
+var bbox;
+//var qPoint;
 
 function init() {
   $('#coords .btn-default').on('click',function() {
@@ -208,7 +212,19 @@ function init() {
     ,zoom   : 4
   });
 
+  //alert('debug1');
+//var EPSG4326 = new OpenLayers.Projection("EPSG:4326");
+//var proj900913 = new OpenLayers.Projection("EPSG:900913");
+
+var bounds = map.getExtent().clone();
+bounds = bounds.transform(proj3857,proj4326);
+bbox = bounds.toBBOX();
+  //alert(bbox);
+
+
   map.events.register('click',this,function(e) {
+    //alert('click:' + e.x + ':' + e.y);
+    //qPoint = e;
     lyrQuery.removeAllFeatures();
     var lonLat = map.getLonLatFromPixel(e.xy);
     var f = new OpenLayers.Feature.Vector(
@@ -224,7 +240,10 @@ function init() {
   });
   lyrQuery.addFeatures([f.clone()]);
   map.setCenter([f.geometry.x,f.geometry.y],5);
-
+  //qPoint = map.getLayerPxFromViewPortPx(map.getPixelFromLonLat(new OpenLayers.LonLat(f.geometry.x,f.geometry.y).transform(proj3857,proj4326)));
+  //qPoint = map.getPixelFromLonLat(new OpenLayers.LonLat(f.geometry.x,f.geometry.y).transform(proj3857,proj4326));
+  //alert(qPoint.x + ':' + qPoint.y);
+ 
   query();
 }
 
@@ -232,11 +251,32 @@ function plot() {
   _.each(_.pluck(plotData,'id'),function(o) {
     $('#' + o).remove();
   });
-  if (plotData.length == 4) {
+
+  if (reqs.length > 0 && plotData.length == reqs.length) {
+
+   _.each(plotData,function(o) {
+     o.data = insertBreaks(o.data);
+   });
+   
+/*
+    //plotData.lines = {show : true,lineWidth : 3}; 
+
+    //var obsDataModel = _.findWhere(plotData,{id : 'obs_model'});
+    var obsDataModel = _.findWhere(plotData,{id : 'obs_model'});
+    if (obsDataModel) {
+      obsDataModel.lines = {show : true,lineWidth : 3}; 
+    }
+
     var obsData = _.findWhere(plotData,{id : 'obs'});
     if (obsData) {
       obsData.lines = {show : true,lineWidth : 3}; 
     }
+
+    var obsData2 = _.findWhere(plotData,{id : 'obs2'});
+    if (obsData2) {
+      obsData2.lines = {show : true,lineWidth : 3}; 
+    }
+
 
     var minData = _.findWhere(plotData,{id : 'min'});
     if (minData) {
@@ -249,11 +289,14 @@ function plot() {
       maxData.lines  = {show : true,lineWidth : 1};
     }
 
-    var stackOrder = _.invert(['max','min','avg','obs']);
-    plotData = _.sortBy(plotData,function(o){return stackOrder[o.id]});
+ 
+   //var stackOrder = _.invert(['max','min','avg','obs','obs_model']);
+   //var stackOrder = _.invert(['obs','obs_model','obs2']);
+   //plotData = _.sortBy(plotData,function(o){return stackOrder[o.id]});
+*/
   }
 
-  if (plotData.length == 0 || plotData.length == 4) {
+  if (plotData.length == 0 || plotData.length == reqs.length) {
     $.plot(
        $('#time-series-graph')
       ,plotData
@@ -275,7 +318,8 @@ function plot() {
           }
         }
         // repeat 1st color to get outer edges of filled area the same color
-        ,colors : ['rgba(237,194,64,0.50)','rgba(237,194,64,0.50)',"#afd8f8","#cb4b4b","#4da74d","#9440ed"]
+        //,colors : ['rgba(237,194,64,0.50)','rgba(237,194,64,0.50)',"#afd8f8","#cb4b4b","#4da74d","#9440ed"]
+        ,colors : ["#eb4b4b","#4da74d","#9440ed",'rgba(50,100,100,1.0)','rgba(100,50,100,1.0)','rgba(100,100,50,1.0)'] //note - 6 default colors, add more if > 6 needed
       }
     ); 
     hideSpinner();
@@ -323,24 +367,102 @@ function query() {
   var siteQuery = _.find(lyrCatalog.features,function(f) {
     return f.geometry.distanceTo(queryPt) == 0;
   });
-  var reqs = [];
   var title = '';
-  if (siteQuery) {
-    var geom = siteQuery.geometry.clone().transform(proj3857,proj4326);
-    reqs = [
+  //if (siteQuery) {
+  if (1 == 1) {
+    //var geom = siteQuery.geometry.clone().transform(proj3857,proj4326);
+    var geom = queryPt.clone().transform(proj3857,proj4326);
+
+    reqs = [];  //push(or comment/remove) graph requests to reqs array as needed
+
+    //wms example
+/*
+    reqs.push(
+      {
+        getObs : catalog['models']['HYCOM'].getObs(
+           $('#vars .active').text()
+          ,$('#years .active').text()
+	  ,geom.x +','+ geom.y +','+ (geom.x*1+0.01) +','+ (geom.y*1+0.01)
+        ) 
+        ,title : $('#vars .active').text() + ' from HYCOM'
+	,sourceType : catalog['models']['HYCOM']['sourceType']
+        ,id : 'obs'
+        ,postProcess : false
+        ,year : $('#years .active').text()
+      }
+     );
+*/
+
+    //ncss example
+    reqs.push(
+      {
+        getObs : catalog['models']['SABGOM'].getObs(
+           $('#vars .active').text()
+          ,$('#years .active').text()
+          ,geom.x
+          ,geom.y
+        )
+        ,title : $('#vars .active').text() + ' from SABGOM'
+	,sourceType : catalog['models']['SABGOM']['sourceType']
+        ,id    : 'obs_model'
+      }
+    );
+/*
+    reqs.push(
+      {
+        getObs : catalog['models']['USF_OCG'].getObs(
+           $('#vars .active').text()
+          ,$('#years .active').text()
+          ,geom.x +','+ geom.y +','+ (geom.x*1+0.01) +','+ (geom.y*1+0.01)
+        )
+        ,title : $('#vars .active').text() + ' from USF_OCG'
+        ,sourceType : catalog['models']['USF_OCG']['sourceType']
+        ,id : 'obs'
+        ,postProcess : false
+        ,year : $('#years .active').text()
+      }
+     );
+
+    reqs.push(
+      {
+        getObs : catalog['sites']['USF']['C12'].getObs(
+           $('#vars .active').text()
+          ,$('#years .active').text()
+          ,$('#years .active').text()
+        )
+        ,title : $('#vars .active').text() + ' from C12'
+        ,sourceType : catalog['sites']['USF']['C12']['sourceType']
+        ,id : 'obs2'
+        ,postProcess : false
+        ,year : $('#years .active').text()
+      }
+
+    );
+*/
+ 
+    if (siteQuery) {
+
+    //ncSOS, ndbcSOS example
+    reqs.push(
       {
         getObs : catalog['sites'][siteQuery.attributes.group][siteQuery.attributes.name].getObs(
            $('#vars .active').text()
-          ,catalog.years[0]
-          ,catalog.years[catalog.years.length - 1]
-        ) 
+          ,$('#years .active').text()
+          ,$('#years .active').text()
+        )
         ,title : $('#vars .active').text() + ' from ' + siteQuery.attributes.name
-        ,id : 'obs'
-        ,postProcess : true
+        ,sourceType : catalog['sites'][siteQuery.attributes.group][siteQuery.attributes.name]['sourceType']
+        ,id : 'obs2'
+        ,postProcess : false
         ,year : $('#years .active').text()
       }
-    ];
+
+    );
+
+    } 
+
   }
+  /*
   else {
     var geom = queryPt.clone().transform(proj3857,proj4326);
     reqs = [
@@ -392,6 +514,7 @@ function query() {
       }
     ];
   }
+  */
 
   plotData = [];
   $('#messages').empty();
@@ -410,12 +533,13 @@ function query() {
            url         : reqs[i].getObs.u
           ,v           : reqs[i].getObs.v
           ,dataType    : 'xml'
+          ,sourceType  : reqs[i].sourceType
           ,title       : reqs[i].title
           ,year        : reqs[i].year
           ,id          : reqs[i].id
           ,postProcess : reqs[i].postProcess
           ,success     : function(r) {
-            var data = processData($(r),this.url,this.title,this.year,this.v);
+            var data = processData($(r),this.sourceType,this.url,this.title,this.year,this.v);
             data[0].id = this.id;
             if (this.postProcess) {
               data = postProcessData(data[0]);
@@ -523,15 +647,18 @@ function postProcessData(d) {
   return [d,dAvg,dMin,dMax];
 }
 
-function processData($xml,url,title,year,v) {
+function processData($xml,sourceType,url,title,year,v) {
   var d = {
      url   : url
     ,title : title
     ,year  : year
     ,data  : []
   };
-  var ncss = $xml.find('point');
-  if (ncss.length > 0) { // NetcdfSubset response
+
+  //if (typeof(sourceType) !== 'undefined' && sourceType != null && sourceType == "ncss") { //NetcdfSubset response
+  //alert(sourceType);
+  if (sourceType == 'ncss') { //NetcdfSubset response
+    var ncss = $xml.find('point');
     ncss.each(function() {
       var point = $(this);
       d.uom = point.find('[name=temp]').attr('units');
@@ -547,17 +674,46 @@ function processData($xml,url,title,year,v) {
       d.label = '&nbsp;<a target=_blank href=\'' + url + '\'>' + title + ' (' + d.uom + ')' + '</a>';
     });
   }
-  else { // ncSOS response
-    d.uom   = $xml.find('uom[code]').attr('code');
+  if (sourceType == 'wms') {
+    //d.uom   = $xml.find('uom[code]').attr('code');
+    d.uom   = '';
     var nil = [$xml.find('nilValue').text()];
     d.label = '&nbsp;<a target=_blank href=\'' + url + '\'>' + title + ' (' + d.uom + ')' + '</a>';
-    _.each($xml.find('values').text().split(" "),function(o) {
+    _.each($xml.find('FeatureInfo'),function(o) {
+      var a = $(o).find('time').text();
+      var b = $(o).find('value').text();
+      if ($.isNumeric(b)) {
+        //console.log(a+':'+b); 
+        d.data.push([isoDateToDate(a),b]);
+      }
+    });
+  }
+  if (sourceType == 'ncSOS') {
+    d.uom   = $xml.find('uom[code],swe\\:uom[code]').attr('code');
+    var nil = [$xml.find('nilValue,swe\\:nilValue').text()];
+    d.label = '&nbsp;<a target=_blank href=\'' + url + '\'>' + title + ' (' + d.uom + ')' + '</a>';
+    _.each($xml.find('values,swe\\:values').text().split(" "),function(o) {
       var a = o.split(',');
       if ((a.length == 2) && $.isNumeric(a[1]) && nil.indexOf(a[1]) < 0) {
+        //console.log(a[0]+':'+a[1]);
         d.data.push([isoDateToDate(a[0]),a[1]]);
       }
     });
   }
+  if (sourceType == 'ndbcSOS') {
+    d.uom   = $xml.find('uom[code],swe2\\:uom[code]').attr('code');
+    var nil = [$xml.find('nilValue,swe2\\:nilValue').text()];
+    d.label = '&nbsp;<a target=_blank href=\'' + url + '\'>' + title + ' (' + d.uom + ')' + '</a>';
+    _.each($xml.find('values,swe2\\:values').text().split("\n"),function(o) {
+      var a = o.split(',');
+      //console.log(a.length +':'+ a[0]+':'+a[2]);
+      if ((a.length == 3) && $.isNumeric(a[2]) ) {
+        //console.log(a[0]+':'+a[2]);
+        d.data.push([isoDateToDate(a[0]),a[2]]);
+      }
+    });
+  }
+
   return [d];
 }
 
@@ -583,6 +739,22 @@ function stats(data) {
     ,min : !_.isUndefined(min) ? min : [null,null]
     ,max : !_.isUndefined(max) ? max : [null,null]
   };
+}
+
+function insertBreaks(data) {
+  // Insert a null between any non-consecutive days to keep points from being
+  // connected in the graph.
+  var d = []; 
+  if (data.length > 0) {
+    d.push(data[0]);
+  }
+  for (var i = 1; i < data.length; i++) {
+    if (data[i - 1][0].getDOY() < data[i][0].getDOY() - 1) {
+      d.push(null);
+    }
+    d.push(data[i]);
+  }
+  return d;
 }
 
 function showToolTip(x,y,contents) {
@@ -620,7 +792,7 @@ function isoDateToDate(s) {
 }
 
 Date.prototype.getDOY = function() {
-  var onejan = new Date(this.getFullYear(),0,1);
+  var onejan = new Date(Date.UTC(this.getFullYear(),0,1));
   return Math.ceil((this - onejan) / 86400000);
 }
 
