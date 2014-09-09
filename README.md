@@ -1,7 +1,7 @@
 flot_graph_examples
 ===========
 
-This is a copy of some initial work by cgalvarino at https://github.com/cgalvarino/climatology using javascript flot graphing library in to display time series graphs initially from ncSOS and thredds ncss web services.  I thought the initial code was a good reference point for demonstrating the flot library and parsing the various xml services to get a quick visual and comparisons to other data sources using the catalog.js file which describes the input sources to the graph selection.
+This is a copy of some initial work by cgalvarino at https://github.com/cgalvarino/climatology using javascript [flot](http://www.flotcharts.org/) graphing library to display time series graphs initially from ncSOS and thredds ncss web services.  I thought the initial code was a good reference point for demonstrating the flot library combined with parsing the various xml services to get a quick browser-based visual and comparison between data sources using the catalog.js file which describes the input sources to the graph selection.
 
 The current demo for this tool is at http://secoora.org/ts_compare/index.html and shows the comparison of an in-situ buoy measurements(using ncSOS access) to daily average model measurements(using ncss access).
 
