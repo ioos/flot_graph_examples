@@ -18,4 +18,4 @@ To add additional web service parsing methods, see the sourceType handling under
 
 I would like to have everything driven from the catalog.js file or similar json configuration files with listing and toggling of all enabled data sources, but that was more time than I wanted to invest for the moment.
 
-
+Welcome others who want to provide additional examples for including other service types, graphs or functionality for demonstration purposes.
